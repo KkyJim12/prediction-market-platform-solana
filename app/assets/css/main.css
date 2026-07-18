@@ -4000,6 +4000,129 @@ body:has(.cup-shell) {
   color: var(--cup-muted);
 }
 
+.market-competition-dropdown {
+  position: relative;
+  z-index: 18;
+}
+
+.market-competition-trigger {
+  width: 100%;
+  height: 45px;
+  padding: 0 13px;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 14px;
+  gap: 9px;
+  align-items: center;
+  border: 1px solid var(--cup-line);
+  color: var(--cup-ink);
+  background: var(--cup-panel);
+  cursor: pointer;
+  text-align: left;
+}
+
+.market-competition-trigger span {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-competition-trigger svg {
+  width: 14px;
+  height: 14px;
+  color: var(--cup-muted);
+  transition: transform .18s ease, color .18s ease;
+}
+
+.market-competition-trigger svg:first-child {
+  color: var(--cup-lime);
+}
+
+.market-competition-trigger svg.open {
+  color: var(--cup-lime);
+  transform: rotate(180deg);
+}
+
+.market-competition-trigger:hover,
+.market-competition-trigger[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--cup-lime) 55%, var(--cup-line));
+}
+
+.market-competition-menu {
+  width: max(100%, 255px);
+  max-height: 290px;
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--cup-line);
+  background: var(--cup-panel);
+  box-shadow: 0 20px 55px rgba(0, 0, 0, .36);
+}
+
+.market-competition-menu button {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  color: var(--cup-muted);
+  background: transparent;
+  font-size: 9px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.market-competition-menu button > span {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-competition-menu button svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+}
+
+.market-competition-menu button > span svg {
+  color: var(--cup-muted);
+}
+
+.market-competition-menu button:hover {
+  color: var(--cup-ink);
+  background: var(--cup-panel-2);
+}
+
+.market-competition-menu button.active {
+  color: #08140d;
+  background: var(--cup-lime);
+}
+
+.market-competition-menu button.active svg {
+  color: #08140d;
+}
+
+.dropdown-pop-enter-active,
+.dropdown-pop-leave-active {
+  transition: opacity .14s ease, transform .14s ease;
+  transform-origin: top right;
+}
+
+.dropdown-pop-enter-from,
+.dropdown-pop-leave-to {
+  opacity: 0;
+  transform: translateY(-5px) scale(.98);
+}
+
 .cup-search {
   height: 45px;
   padding: 0 13px;

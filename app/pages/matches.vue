@@ -13,6 +13,8 @@ const {
 const search = ref('')
 const stage = ref<'all' | 'live' | 'upcoming'>('all')
 const competition = ref<number | 'all'>('all')
+const competitionOpen = ref(false)
+const competitionDropdown = ref<HTMLElement>()
 
 const competitions = computed(() => {
   const values = new Map<number, string>()
@@ -20,6 +22,37 @@ const competitions = computed(() => {
   return [...values]
     .map(([id, name]) => ({ id, name }))
     .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const selectedCompetitionLabel = computed(() =>
+  competition.value === 'all'
+    ? 'All competitions'
+    : competitions.value.find(item => item.id === competition.value)?.name || 'All competitions'
+)
+
+function selectCompetition(value: number | 'all') {
+  competition.value = value
+  competitionOpen.value = false
+}
+
+function closeCompetitionDropdown(event: MouseEvent) {
+  if (!competitionDropdown.value?.contains(event.target as Node)) {
+    competitionOpen.value = false
+  }
+}
+
+function closeCompetitionOnEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape') competitionOpen.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeCompetitionDropdown)
+  document.addEventListener('keydown', closeCompetitionOnEscape)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeCompetitionDropdown)
+  document.removeEventListener('keydown', closeCompetitionOnEscape)
 })
 
 const visibleFixtures = computed(() => {
@@ -67,14 +100,45 @@ useSeoMeta({
           <Icon name="lucide:search" />
           <input v-model="search" type="search" placeholder="Search a team" aria-label="Search a team">
         </label>
-        <label class="competition-select cup-competition-select">
-          <Icon name="lucide:trophy" />
-          <select v-model="competition" aria-label="Filter by competition">
-            <option value="all">All competitions</option>
-            <option v-for="item in competitions" :key="item.id" :value="item.id">{{ item.name }}</option>
-          </select>
-          <Icon name="lucide:chevron-down" />
-        </label>
+        <div ref="competitionDropdown" class="market-competition-dropdown">
+          <button
+            class="market-competition-trigger"
+            type="button"
+            aria-haspopup="listbox"
+            :aria-expanded="competitionOpen"
+            @click="competitionOpen = !competitionOpen"
+          >
+            <Icon name="lucide:trophy" />
+            <span>{{ selectedCompetitionLabel }}</span>
+            <Icon name="lucide:chevron-down" :class="{ open: competitionOpen }" />
+          </button>
+          <Transition name="dropdown-pop">
+            <div v-if="competitionOpen" class="market-competition-menu" role="listbox" aria-label="Filter by competition">
+              <button
+                type="button"
+                role="option"
+                :aria-selected="competition === 'all'"
+                :class="{ active: competition === 'all' }"
+                @click="selectCompetition('all')"
+              >
+                <span><Icon name="lucide:layers-3" /> All competitions</span>
+                <Icon v-if="competition === 'all'" name="lucide:check" />
+              </button>
+              <button
+                v-for="item in competitions"
+                :key="item.id"
+                type="button"
+                role="option"
+                :aria-selected="competition === item.id"
+                :class="{ active: competition === item.id }"
+                @click="selectCompetition(item.id)"
+              >
+                <span><Icon name="lucide:trophy" /> {{ item.name }}</span>
+                <Icon v-if="competition === item.id" name="lucide:check" />
+              </button>
+            </div>
+          </Transition>
+        </div>
         <div class="market-tabs">
           <button v-for="item in (['all', 'live', 'upcoming'] as const)" :key="item" type="button" :class="{ active: stage === item }" @click="stage = item">{{ item }}</button>
         </div>
