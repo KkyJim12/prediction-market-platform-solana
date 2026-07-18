@@ -1,6 +1,7 @@
-# Nuxt Minimal Starter
+# CupMarket
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+A World Cup AMM prediction-market interface on Solana, powered by Nuxt and
+TxODDS TxLINE free-tier match and reference-odds data.
 
 ## Setup
 
@@ -19,6 +20,81 @@ yarn install
 # bun
 bun install
 ```
+
+## TxODDS TxLINE World Cup free tier
+
+The server loads active and upcoming World Cup and International Friendlies
+fixtures covered by TxLINE's standard free bundle. It filters the snapshot
+server-side and only allows odds requests for covered fixtures.
+
+Subscribe on-chain with `SELECTED_LEAGUES = []`, using mainnet service level
+`1` for the 60-second delayed tier or mainnet service level `12` for real-time.
+The free tier requires no TxL purchase, but the subscription transaction still
+requires SOL for fees and possible account rent. Then copy the environment
+file:
+
+```bash
+cp .env.example .env
+```
+
+Set `NUXT_TX_ODDS_API_TOKEN` to the token returned by
+`POST /api/token/activate`. The server creates and renews the guest JWT
+automatically, so `NUXT_TX_ODDS_GUEST_JWT` is optional.
+
+This app also exposes same-origin activation routes. First request a fresh
+guest JWT:
+
+```bash
+curl --request POST http://localhost:3000/api/txodds/auth/guest
+```
+
+After the subscription transaction is confirmed, sign the exact UTF-8 message
+`<txSig>::<guestJwt>` with the same wallet. Base64-encode the detached 64-byte
+signature, then activate the free bundle:
+
+```bash
+curl --request POST http://localhost:3000/api/txodds/auth/activate \
+  --header "Content-Type: application/json" \
+  --data '{
+    "guestJwt": "<guest-jwt>",
+    "txSig": "<subscription-transaction-signature>",
+    "walletSignature": "<base64-wallet-signature>",
+    "leagues": []
+  }'
+```
+
+The response is `{ "apiToken": "..." }`. Store that value as
+`NUXT_TX_ODDS_API_TOKEN` in a server-side environment or secret manager; never
+ship the token or guest JWT in client code.
+
+Use `https://txline.txodds.com` for a mainnet subscription or
+`https://txline-dev.txodds.com` for devnet. The host, Solana network, and
+activated token must match.
+
+Browse covered match markets at `/matches`. The endpoint requests the current
+UTC epoch window, filters non-free-tier, cancelled, or stale fixtures, and
+caches successful responses for 60 seconds. Odds are fetched per fixture from
+the server-only proxy and normalized into two-way or home/draw/away reference
+probabilities.
+
+When no API token is configured, `/settings` shows an activation panel. Connect
+Phantom or Solflare, choose mainnet service level `1` (60-second delay) or `12`
+(real-time), and select **Subscribe & activate**. The wallet submits the
+four-week standard-bundle subscription, signs the activation message, and
+loads the resulting token into the current Nuxt server process. Copy the token
+to `NUXT_TX_ODDS_API_TOKEN` to keep it after a server restart.
+
+Solana blockhash and confirmation reads go through the Nuxt server so browsers
+do not call the rate-limited public RPC directly. For production, set
+`NUXT_SOLANA_RPC_URL` to a private mainnet RPC endpoint; the URL and any API key
+remain server-only.
+
+When no API token is configured—or when TxODDS is temporarily unavailable—the
+UI displays an explicit feed state and does not invent fixture or odds data.
+
+The trade ticket is an AMM quote preview. It calculates shares, average price,
+price impact, post-trade probability, and potential payout, but does not submit
+an on-chain transaction until a market program is connected.
 
 ## Development Server
 

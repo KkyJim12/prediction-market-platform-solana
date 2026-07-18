@@ -1,0 +1,126 @@
+<script setup lang="ts">
+const {
+  fixtures,
+  updatedAt,
+  txOddsConfigured,
+  txOddsLive,
+  txOddsErrorCode,
+  txOddsError,
+  status,
+  refresh
+} = useTxOdds()
+
+const search = ref('')
+const stage = ref<'all' | 'live' | 'upcoming'>('all')
+const competition = ref<number | 'all'>('all')
+
+const competitions = computed(() => {
+  const values = new Map<number, string>()
+  for (const fixture of fixtures.value) values.set(fixture.competitionId, fixture.competition)
+  return [...values]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const visibleFixtures = computed(() => {
+  const term = search.value.trim().toLocaleLowerCase()
+  const now = Date.now()
+  return fixtures.value.filter(fixture => {
+    const matchesSearch = !term ||
+      fixture.participant1.toLocaleLowerCase().includes(term) ||
+      fixture.participant2.toLocaleLowerCase().includes(term) ||
+      fixture.competition.toLocaleLowerCase().includes(term)
+    const matchesCompetition = competition.value === 'all' ||
+      fixture.competitionId === competition.value
+    const isLive = fixture.startTime <= now &&
+      fixture.startTime >= now - 6 * 60 * 60 * 1000
+    const matchesStage = stage.value === 'all' ||
+      (stage.value === 'live' ? isLive : fixture.startTime > now)
+    return matchesSearch && matchesCompetition && matchesStage
+  })
+})
+
+useSeoMeta({
+  title: 'World Cup free-tier markets — CupMarket',
+  description: 'Browse World Cup and International Friendlies markets from the TxODDS TxLINE free tier.'
+})
+</script>
+
+<template>
+  <main class="markets-page">
+    <section class="markets-hero">
+      <div>
+        <span class="cup-kicker"><span class="live-pulse" /> TXLINE WORLD CUP FREE TIER</span>
+        <h1>Match markets.</h1>
+        <p>Back either team or the draw at TxLINE StablePrice decimal odds. Your return is the accepted stake multiplied by the accepted odds.</p>
+      </div>
+      <div class="market-feed-stats">
+        <div><span>OPEN MARKETS</span><strong>{{ fixtures.length }}</strong></div>
+        <div><span>PRICING</span><strong>FIXED ODDS</strong></div>
+        <div><span>DATA FEED</span><strong :class="{ online: txOddsLive }">{{ txOddsLive ? 'ONLINE' : 'STANDBY' }}</strong></div>
+      </div>
+    </section>
+
+    <section class="markets-content">
+      <div class="market-toolbar">
+        <label class="cup-search">
+          <Icon name="lucide:search" />
+          <input v-model="search" type="search" placeholder="Search a team" aria-label="Search a team">
+        </label>
+        <label class="competition-select cup-competition-select">
+          <Icon name="lucide:trophy" />
+          <select v-model="competition" aria-label="Filter by competition">
+            <option value="all">All competitions</option>
+            <option v-for="item in competitions" :key="item.id" :value="item.id">{{ item.name }}</option>
+          </select>
+          <Icon name="lucide:chevron-down" />
+        </label>
+        <div class="market-tabs">
+          <button v-for="item in (['all', 'live', 'upcoming'] as const)" :key="item" type="button" :class="{ active: stage === item }" @click="stage = item">{{ item }}</button>
+        </div>
+        <button class="market-refresh" type="button" :disabled="status === 'pending'" @click="refresh()">
+          <Icon :name="status === 'pending' ? 'lucide:loader-circle' : 'lucide:refresh-cw'" />
+          Refresh feed
+        </button>
+      </div>
+
+      <div class="market-feed-line">
+        <span><i :class="{ live: txOddsLive }" /> {{ txOddsLive ? 'TxLINE connected' : 'TxLINE offline' }}</span>
+        <span v-if="updatedAt">Last synced {{ new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</span>
+        <span>{{ visibleFixtures.length }} results</span>
+      </div>
+
+      <div v-if="visibleFixtures.length" class="amm-market-grid market-directory">
+        <MatchMarketCard v-for="fixture in visibleFixtures" :key="fixture.fixtureId" :fixture="fixture" />
+      </div>
+
+      <section v-else-if="status === 'pending'" class="cup-feed-empty">
+        <Icon name="lucide:loader-circle" />
+        <h3>Opening the TxLINE feed</h3>
+        <p>Fetching active and upcoming World Cup and International Friendlies fixtures.</p>
+      </section>
+
+      <section v-else-if="!txOddsConfigured" class="cup-feed-empty">
+        <Icon name="lucide:key-round" />
+        <h3>Connect the TxLINE API</h3>
+        <p>Subscribe to the World Cup free tier and activate your API token from Settings.</p>
+        <NuxtLink to="/settings">Open settings</NuxtLink>
+      </section>
+
+      <section v-else-if="txOddsError" class="cup-feed-empty">
+        <Icon :name="txOddsErrorCode === 'TXODDS_TOKEN_INVALID' ? 'lucide:key-round' : 'lucide:cloud-off'" />
+        <h3>{{ txOddsErrorCode === 'TXODDS_TOKEN_INVALID' ? 'TxLINE token needs activation' : 'Feed temporarily unavailable' }}</h3>
+        <p>{{ txOddsError }}</p>
+        <button type="button" @click="refresh()">Try again</button>
+      </section>
+
+      <section v-else class="cup-feed-empty">
+        <Icon name="lucide:calendar-x-2" />
+        <h3>No matching markets</h3>
+        <p v-if="search || stage !== 'all' || competition !== 'all'">Try clearing the current filters.</p>
+        <p v-else>The current free-tier snapshot has no active or upcoming covered fixtures.</p>
+        <button v-if="search || stage !== 'all' || competition !== 'all'" type="button" @click="search = ''; stage = 'all'; competition = 'all'">Clear filters</button>
+      </section>
+    </section>
+  </main>
+</template>

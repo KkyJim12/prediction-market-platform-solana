@@ -1,67 +1,86 @@
 <script setup lang="ts">
-const { pools } = usePools()
-const featuredPools = computed(() => pools.filter(pool => pool.hot).concat(pools.filter(pool => !pool.hot)).slice(0, 3))
+const { fixtures, txOddsLive, updatedAt, status } = useTxOdds()
+
+const featuredFixtures = computed(() => fixtures.value.slice(0, 6))
+
+const nextFixture = computed(() => featuredFixtures.value[0])
 
 useSeoMeta({
-  title: 'Contraria — Team strategy pools on Solana',
-  description: 'Explore backoffice-managed team win pools with transparent historical backtests.'
+  title: 'CupMarket — World Cup prediction markets on Solana',
+  description: 'Trade World Cup and International Friendlies outcomes with free-tier data from TxODDS TxLINE.'
 })
 </script>
 
 <template>
-  <main>
-    <section class="hero">
-      <div class="hero-copy">
-        <div class="eyebrow"><span /> TEAM STRATEGY POOLS ON SOLANA</div>
-        <h1>Back your<br><em>team.</em></h1>
-        <p>Join a pool dedicated to one team. A fixed share is deployed on every match win while the remaining balance stays ready for what comes next.</p>
-        <div class="hero-actions">
-          <NuxtLink class="primary-button" to="/pools">Explore all pools <Icon name="lucide:arrow-right" /></NuxtLink>
-          <NuxtLink class="text-button" to="/pool/argentina-win">See Argentina backtest <Icon name="lucide:chart-no-axes-combined" /></NuxtLink>
+  <main class="cup-home">
+    <section class="cup-hero">
+      <div class="cup-hero-grid">
+        <div class="cup-hero-copy">
+          <div class="cup-kicker"><span class="live-pulse" /> WORLD CUP FREE TIER · LIVE MARKETS</div>
+          <h1>Every match.<br><em>Your call.</em></h1>
+          <p>Trade the result, not the sportsbook. World Cup and International Friendlies fixtures flow from TxLINE’s free bundle into one market directory.</p>
+          <div class="cup-hero-actions">
+            <NuxtLink class="cup-primary" to="/matches">Explore markets <Icon name="lucide:arrow-up-right" /></NuxtLink>
+            <span class="cup-data-proof"><Icon name="lucide:radio-tower" /> Odds by TxODDS TxLINE</span>
+          </div>
         </div>
-        <div class="managed-note"><Icon name="lucide:shield-check" /><span><strong>Backoffice curated</strong> Every pool and data source is reviewed before publishing.</span></div>
-      </div>
 
-      <aside class="signal-card">
-        <div class="signal-topline"><span>LIVE SIGNAL</span><span class="live-indicator"><i /> 12,482 ONLINE</span></div>
-        <div class="signal-number">$18.42M</div>
-        <div class="signal-label">TOTAL STRATEGY VOLUME</div>
-        <div class="signal-chart" aria-hidden="true">
-          <svg viewBox="0 0 500 120" preserveAspectRatio="none">
-            <defs><linearGradient id="homeChartFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff3b4f" stop-opacity=".25" /><stop offset="100%" stop-color="#ff3b4f" stop-opacity="0" /></linearGradient></defs>
-            <path class="chart-area" d="M0 108 L35 102 L70 105 L105 86 L140 92 L175 70 L210 74 L245 44 L280 58 L315 50 L350 26 L385 37 L420 18 L455 25 L500 4 L500 120 L0 120Z" />
-            <path class="chart-line" d="M0 108 L35 102 L70 105 L105 86 L140 92 L175 70 L210 74 L245 44 L280 58 L315 50 L350 26 L385 37 L420 18 L455 25 L500 4" />
-          </svg>
+        <div class="cup-scoreboard">
+          <div class="scoreboard-top">
+            <span>NEXT MARKET</span>
+            <span :class="{ live: txOddsLive }"><i />{{ txOddsLive ? 'DATA LIVE' : 'CONNECTING' }}</span>
+          </div>
+          <template v-if="nextFixture">
+            <div class="scoreboard-stage">{{ nextFixture.competition }}</div>
+            <div class="scoreboard-match">
+              <div><span>{{ nextFixture.participant1.slice(0, 2).toUpperCase() }}</span><strong>{{ nextFixture.participant1 }}</strong></div>
+              <div class="scoreboard-vs"><b>VS</b><time>{{ new Date(nextFixture.startTime).toLocaleDateString('en', { month: 'short', day: 'numeric' }) }}</time></div>
+              <div><span>{{ nextFixture.participant2.slice(0, 2).toUpperCase() }}</span><strong>{{ nextFixture.participant2 }}</strong></div>
+            </div>
+            <NuxtLink to="/matches">Open live market <Icon name="lucide:arrow-right" /></NuxtLink>
+          </template>
+          <div v-else class="scoreboard-empty">
+            <Icon :name="status === 'pending' ? 'lucide:loader-circle' : 'lucide:calendar-clock'" />
+            <strong>{{ status === 'pending' ? 'Loading the fixture feed' : 'No upcoming fixture' }}</strong>
+            <span>The feed refreshes automatically.</span>
+          </div>
         </div>
-        <div class="signal-stats">
-          <div><strong>128</strong><span>ACTIVE POOLS</span></div>
-          <div><strong>6,104</strong><span>MEMBERS</span></div>
-          <div><strong class="positive">68.2%</strong><span>AVG. WIN RATE</span></div>
-        </div>
-      </aside>
+      </div>
+      <div class="cup-ticker">
+        <span><b>{{ fixtures.length }}</b> available markets</span>
+        <span><b>1X2</b> match outcome</span>
+        <span><b>USDC</b> settlement asset</span>
+        <span><b>AMM</b> continuous liquidity</span>
+        <span v-if="updatedAt"><b>FEED</b> {{ new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</span>
+      </div>
     </section>
 
-    <section class="home-pools page-section">
-      <div class="section-heading">
-        <div><span class="section-index mono">01 / FEATURED POOLS</span><h2>Strategies worth watching.</h2></div>
-        <NuxtLink class="outline-link" to="/pools">Browse all pools <Icon name="lucide:arrow-up-right" /></NuxtLink>
+    <section class="cup-market-section">
+      <div class="cup-section-head">
+        <div><span>01 / UPCOMING</span><h2>Markets in play.</h2></div>
+        <NuxtLink to="/matches">View all <Icon name="lucide:arrow-right" /></NuxtLink>
       </div>
-      <div class="pool-grid">
-        <PoolCard v-for="pool in featuredPools" :key="pool.id" :pool="pool" />
+
+      <div v-if="featuredFixtures.length" class="amm-market-grid">
+        <MatchMarketCard v-for="fixture in featuredFixtures" :key="fixture.fixtureId" :fixture="fixture" />
+      </div>
+      <div v-else class="cup-feed-empty">
+        <Icon name="lucide:radio-tower" />
+        <h3>{{ status === 'pending' ? 'Syncing with TxLINE' : 'The World Cup feed is standing by' }}</h3>
+        <p>Configure an activated free-tier API token to receive covered fixtures and reference odds.</p>
+        <NuxtLink to="/matches">View feed status</NuxtLink>
       </div>
     </section>
 
-    <section class="mechanism-strip">
-      <div class="mechanism-copy">
-        <span class="section-index mono">02 / HOW IT WORKS</span>
-        <h2>Simple rule.<br><em>Visible history.</em></h2>
-        <p>Each pool follows one team and one repeatable strategy. Historical results are published before capital enters.</p>
-        <NuxtLink class="light-button" to="/pool/argentina-win">Explore a full backtest <Icon name="lucide:arrow-up-right" /></NuxtLink>
+    <section class="amm-explainer">
+      <div>
+        <span>02 / THE MARKET</span>
+        <h2>Odds move with<br>every trade.</h2>
       </div>
-      <div class="mechanism-steps">
-        <div><span class="mono">01</span><strong>Choose a verified pool</strong><p>Public pool creation is disabled. Strategies are published by the backoffice.</p></div>
-        <div><span class="mono">02</span><strong>Allocate per match</strong><p>Argentina’s pool deploys 20% of available balance on each Argentina win.</p></div>
-        <div><span class="mono">03</span><strong>Track every result</strong><p>Returns, drawdowns, win rate, and annual backtests remain visible.</p></div>
+      <div class="amm-steps">
+        <article><b>01</b><Icon name="lucide:radio" /><h3>TxLINE seeds the market</h3><p>Fixtures and consensus reference probabilities arrive through the server-side data feed.</p></article>
+        <article><b>02</b><Icon name="lucide:waves" /><h3>The AMM quotes instantly</h3><p>A liquidity curve returns shares, price impact, and the new market probability before you trade.</p></article>
+        <article><b>03</b><Icon name="lucide:circle-dollar-sign" /><h3>Winning shares settle at $1</h3><p>One match, three outcomes. Correct shares redeem for one USDC after resolution.</p></article>
       </div>
     </section>
   </main>

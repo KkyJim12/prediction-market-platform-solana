@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { TeamPool } from '~/composables/usePools'
 
-defineProps<{ pool: TeamPool }>()
+const props = defineProps<{ pool: TeamPool }>()
+const { findTeamFixture, formatFixture, txOddsLive } = useTxOdds()
+const liveFixture = findTeamFixture(props.pool.team)
+const matchLabel = computed(() => liveFixture.value ? formatFixture(liveFixture.value) : props.pool.nextMatch)
 </script>
 
 <template>
@@ -16,7 +19,8 @@ defineProps<{ pool: TeamPool }>()
     </div>
 
     <h3>{{ pool.shortName }}</h3>
-    <p class="next-match"><Icon name="lucide:calendar-days" /> NEXT: {{ pool.nextMatch }}</p>
+    <p class="next-match"><Icon name="lucide:calendar-days" /> NEXT: {{ matchLabel }}</p>
+    <div v-if="liveFixture && txOddsLive" class="txodds-source"><i /> TXLINE LIVE · FIXTURE {{ liveFixture.fixtureId }}</div>
 
     <div class="pool-card-stats">
       <div><span>5Y BACKTEST</span><strong :class="{ negative: pool.backtest < 0 }">{{ pool.backtest > 0 ? '+' : '' }}{{ pool.backtest }}%</strong></div>

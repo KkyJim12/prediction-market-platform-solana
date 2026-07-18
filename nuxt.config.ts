@@ -3,6 +3,18 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  runtimeConfig: {
+    txOddsApiOrigin: 'https://txline.txodds.com',
+    txOddsApiToken: '',
+    txOddsGuestJwt: '',
+    solanaRpcUrl: 'https://api.mainnet-beta.solana.com',
+    public: {
+      solanaCluster: 'mainnet-beta',
+      txOddsProgramId: '9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA',
+      txOddsTokenMint: 'Zhw9TVKp68a1QrftncMSd6ELXKDtpVMNuMGr1jNwdeL'
+    }
+  },
+
   modules: [
     '@nuxt/icon',
     '@nuxt/image',
@@ -23,10 +35,10 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'Contraria — Solana prediction markets',
+      title: 'CupMarket — World Cup prediction markets',
       meta: [
-        { name: 'description', content: 'Create, trade, and earn on community-owned prediction markets on Solana.' },
-        { name: 'theme-color', content: '#0d0b0c' }
+        { name: 'description', content: 'Trade World Cup outcomes with free-tier fixtures and reference odds from TxODDS TxLINE.' },
+        { name: 'theme-color', content: '#07120d' }
       ]
     }
   }
