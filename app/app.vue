@@ -36,7 +36,6 @@ async function connectWallet(providerName: 'Phantom' | 'Solflare') {
       </NuxtLink>
 
       <nav class="desktop-nav cup-nav" aria-label="Main navigation">
-        <NuxtLink class="nav-link" to="/">Discover</NuxtLink>
         <NuxtLink class="nav-link" to="/matches">Markets</NuxtLink>
         <NuxtLink class="nav-link" to="/earn">Earn</NuxtLink>
         <NuxtLink class="nav-link" to="/leaderboard">Leaderboard</NuxtLink>
@@ -61,7 +60,6 @@ async function connectWallet(providerName: 'Phantom' | 'Solflare') {
 
     <Transition name="fade">
       <nav v-if="mobileNavOpen" class="mobile-nav cup-mobile-nav">
-        <NuxtLink to="/">Discover</NuxtLink>
         <NuxtLink to="/matches">Markets</NuxtLink>
         <NuxtLink to="/earn">Earn</NuxtLink>
         <NuxtLink to="/leaderboard">Leaderboard</NuxtLink>
