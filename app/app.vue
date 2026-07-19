@@ -111,19 +111,30 @@ onBeforeUnmount(() => {
             :aria-expanded="modeMenuOpen"
             @click="modeMenuOpen = !modeMenuOpen"
           >
-            <span class="app-mode-status" :class="{ test: isTestMode }" />
-            <span>{{ isTestMode ? 'Test Mode' : 'Main' }}</span>
-            <Icon name="lucide:chevron-down" :class="{ open: modeMenuOpen }" />
+            <span class="app-mode-trigger-icon" :class="{ test: isTestMode }">
+              <Icon :name="isTestMode ? 'lucide:flask-conical' : 'lucide:blocks'" />
+            </span>
+            <span class="app-mode-trigger-copy">
+              <small>ENVIRONMENT</small>
+              <strong>{{ isTestMode ? 'Test Mode' : 'Main' }}</strong>
+            </span>
+            <Icon class="app-mode-chevron" name="lucide:chevron-down" :class="{ open: modeMenuOpen }" />
           </button>
           <Transition name="dropdown-pop">
             <div v-if="modeMenuOpen" class="app-mode-menu" role="menu">
+              <div class="app-mode-menu-head">
+                <span>SELECT ENVIRONMENT</span>
+                <small>Changes platform data and execution</small>
+              </div>
               <button type="button" role="menuitemradio" :aria-checked="mode === 'main'" @click="chooseMode('main')">
-                <span><i class="app-mode-status" /><strong>Main</strong><small>Solana Devnet</small></span>
-                <Icon v-if="mode === 'main'" name="lucide:check" />
+                <i class="app-mode-option-icon"><Icon name="lucide:blocks" /></i>
+                <span><strong>Main</strong><small>Solana Devnet · On-chain</small></span>
+                <i class="app-mode-selected"><Icon v-if="mode === 'main'" name="lucide:check" /></i>
               </button>
               <button type="button" role="menuitemradio" :aria-checked="mode === 'test'" @click="chooseMode('test')">
-                <span><i class="app-mode-status test" /><strong>Test Mode</strong><small>Database simulation</small></span>
-                <Icon v-if="mode === 'test'" name="lucide:check" />
+                <i class="app-mode-option-icon test"><Icon name="lucide:flask-conical" /></i>
+                <span><strong>Test Mode</strong><small>PostgreSQL · No transactions</small></span>
+                <i class="app-mode-selected"><Icon v-if="mode === 'test'" name="lucide:check" /></i>
               </button>
             </div>
           </Transition>

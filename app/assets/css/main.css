@@ -208,42 +208,74 @@ a {
 }
 
 .app-mode-trigger {
-  height: 38px;
+  height: 44px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
+  gap: 9px;
+  min-width: 142px;
+  padding: 0 10px 0 7px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 11px;
   background: var(--surface);
   color: var(--text);
-  font: 800 10px/1 inherit;
-  letter-spacing: .05em;
-  text-transform: uppercase;
+  box-shadow: 0 5px 18px rgb(25 8 45 / 5%);
   cursor: pointer;
 }
 
-.app-mode-trigger svg {
-  width: 14px;
+.app-mode-trigger:hover,
+.app-mode-trigger[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--surface-2);
+}
+
+.app-mode-trigger-icon {
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #fff;
+  background: linear-gradient(135deg, #5b21b6, #8b5cf6);
+}
+
+.app-mode-trigger-icon.test {
+  background: linear-gradient(135deg, #7e22ce, #c084fc);
+}
+
+.app-mode-trigger-icon svg {
+  width: 15px;
+}
+
+.app-mode-trigger-copy {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.app-mode-trigger-copy small {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .11em;
+}
+
+.app-mode-trigger-copy strong {
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: .03em;
+}
+
+.app-mode-chevron {
+  width: 13px;
+  color: var(--muted);
   transition: transform .18s ease;
 }
 
-.app-mode-trigger svg.open {
+.app-mode-chevron.open {
   transform: rotate(180deg);
-}
-
-.app-mode-status {
-  width: 8px;
-  height: 8px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 0 4px rgb(34 197 94 / 12%);
-}
-
-.app-mode-status.test {
-  background: #c084fc;
-  box-shadow: 0 0 0 4px rgb(192 132 252 / 14%);
 }
 
 .app-mode-menu {
@@ -251,23 +283,41 @@ a {
   z-index: 40;
   top: calc(100% + 9px);
   right: 0;
-  width: 210px;
-  padding: 6px;
+  width: 270px;
+  padding: 8px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--surface);
   box-shadow: var(--shadow);
 }
 
+.app-mode-menu-head {
+  display: grid;
+  gap: 3px;
+  padding: 8px 9px 10px;
+}
+
+.app-mode-menu-head span {
+  color: var(--text);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.app-mode-menu-head small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
 .app-mode-menu > button {
   width: 100%;
-  display: flex;
+  display: grid;
+  grid-template-columns: 35px 1fr 20px;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 9px 10px;
-  border: 0;
-  border-radius: 9px;
+  gap: 10px;
+  padding: 9px;
+  border: 1px solid transparent;
+  border-radius: 11px;
   background: transparent;
   color: var(--text);
   text-align: left;
@@ -279,15 +329,33 @@ a {
   background: var(--surface-2);
 }
 
-.app-mode-menu > button > span {
-  display: grid;
-  grid-template-columns: 10px 1fr;
-  gap: 3px 9px;
-  align-items: center;
+.app-mode-menu > button[aria-checked='true'] {
+  border-color: color-mix(in srgb, var(--accent) 25%, var(--line));
 }
 
-.app-mode-menu .app-mode-status {
-  grid-row: 1 / 3;
+.app-mode-menu > button > span {
+  display: grid;
+  gap: 4px;
+}
+
+.app-mode-option-icon {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: #6d28d9;
+  background: rgb(109 40 217 / 11%);
+  font-style: normal;
+}
+
+.app-mode-option-icon.test {
+  color: #a855f7;
+  background: rgb(168 85 247 / 12%);
+}
+
+.app-mode-option-icon svg {
+  width: 16px;
 }
 
 .app-mode-menu strong {
@@ -302,9 +370,24 @@ a {
   letter-spacing: .02em;
 }
 
-.app-mode-menu > button > svg {
-  width: 16px;
+.app-mode-selected {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
   color: var(--accent);
+  font-style: normal;
+}
+
+.app-mode-selected:empty {
+  background: transparent;
+}
+
+.app-mode-selected svg {
+  width: 11px;
+  color: #fff;
 }
 
 .network-pill.test .network-dot {
@@ -4586,13 +4669,20 @@ body:has(.cup-shell) {
 
   .app-mode-trigger {
     width: 42px;
+    min-width: 42px;
+    height: 42px;
     padding: 0;
     justify-content: center;
-    font-size: 0;
   }
 
-  .app-mode-trigger svg {
+  .app-mode-trigger-copy,
+  .app-mode-chevron {
     display: none;
+  }
+
+  .app-mode-trigger-icon {
+    width: 32px;
+    height: 32px;
   }
 
   .cup-topbar .cup-brand-logo {
