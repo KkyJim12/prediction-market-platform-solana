@@ -42,8 +42,10 @@ The server loads active and upcoming World Cup and International Friendlies
 fixtures covered by TxLINE's standard free bundle. It filters the snapshot
 server-side and only allows odds requests for covered fixtures.
 
-Subscribe on-chain with `SELECTED_LEAGUES = []`, using mainnet service level
-`1` for the 60-second delayed tier or mainnet service level `12` for real-time.
+Subscribe on-chain with `SELECTED_LEAGUES = []`. Mainnet uses service level
+`1` for the 60-second delayed tier or service level `12` for real-time. The
+current devnet pricing matrix exposes service level `1` with zero-second
+sampling, so devnet integrations must use level `1` for real-time demo data.
 The free tier requires no TxL purchase, but the subscription transaction still
 requires SOL for fees and possible account rent. Then copy the environment
 file:

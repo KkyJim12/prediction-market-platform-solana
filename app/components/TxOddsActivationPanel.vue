@@ -39,6 +39,7 @@ const steps = [
 ]
 
 const cluster = computed(() => String(config.public.solanaCluster))
+const isDevnet = computed(() => cluster.value === 'devnet')
 const explorerUrl = computed(() => {
   if (!txSignature.value) return ''
   const suffix = cluster.value === 'mainnet-beta' ? '' : `?cluster=${cluster.value}`
@@ -123,6 +124,10 @@ async function subscribeAndActivate() {
   if (!connected.value) {
     emit('connectWallet')
     return
+  }
+
+  if (isDevnet.value && serviceLevel.value !== 1) {
+    serviceLevel.value = 1
   }
 
   pending.value = true
@@ -215,13 +220,19 @@ function generateAnotherToken() {
       <div class="txline-tier-picker">
         <label :class="{ selected: serviceLevel === 1 }">
           <input v-model="serviceLevel" type="radio" :value="1" :disabled="pending">
-          <span><strong>60-sec delay</strong><small>Service level 1 · Free</small></span>
+          <span>
+            <strong>{{ isDevnet ? 'Real-time Devnet' : '60-sec delay' }}</strong>
+            <small>Service level 1 · {{ isDevnet ? '0-sec sampling · ' : '' }}Free</small>
+          </span>
         </label>
-        <label :class="{ selected: serviceLevel === 12 }">
+        <label v-if="!isDevnet" :class="{ selected: serviceLevel === 12 }">
           <input v-model="serviceLevel" type="radio" :value="12" :disabled="pending">
           <span><strong>Real-time</strong><small>Service level 12 · Free</small></span>
         </label>
       </div>
+      <p v-if="isDevnet" class="txline-devnet-tier-note">
+        <Icon name="lucide:zap" /> Devnet exposes service level 1 with zero-second sampling. Level 12 is available on Mainnet only.
+      </p>
 
       <button
         class="txline-activate-button"

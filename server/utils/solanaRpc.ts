@@ -23,7 +23,7 @@ export async function solanaRpc<T>(
 ) {
   const configuredUrl = scope === 'prediction-market'
     ? config.predictionMarketRpcUrl || 'https://api.devnet.solana.com'
-    : config.solanaRpcUrl || 'https://api.mainnet-beta.solana.com'
+    : config.solanaRpcUrl || 'https://api.devnet.solana.com'
   const rpcUrl = new URL(configuredUrl)
   if (rpcUrl.protocol !== 'https:') {
     throw createError({ statusCode: 500, statusMessage: 'Solana RPC URL must use HTTPS' })

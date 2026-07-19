@@ -5020,6 +5020,21 @@ body:has(.cup-shell) {
   color: var(--cup-muted);
 }
 
+.txline-devnet-tier-note {
+  margin: -4px 0 14px !important;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: var(--cup-muted);
+  font-size: 10px !important;
+}
+
+.txline-devnet-tier-note svg {
+  width: 14px;
+  flex: 0 0 auto;
+  color: var(--cup-lime);
+}
+
 .txline-activate-button {
   display: inline-flex;
   gap: 9px;
