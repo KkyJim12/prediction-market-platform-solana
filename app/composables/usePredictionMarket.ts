@@ -106,8 +106,8 @@ function publicKeyAt(data: Uint8Array, offset: number) {
   return new PublicKey(data.slice(offset, offset + 32))
 }
 
-export function parseMockUsdc(input: string) {
-  const normalized = input.trim()
+export function parseMockUsdc(input: string | number) {
+  const normalized = String(input).trim()
   if (!/^\d+(\.\d{0,6})?$/.test(normalized)) {
     throw new Error('Enter a mock USDC amount with no more than 6 decimals.')
   }

@@ -5,7 +5,7 @@ import type { MarketOutcome } from '~/composables/useMarketOdds'
 const props = defineProps<{ fixture: LiveFixture }>()
 const tradeOpen = ref(false)
 const selectedKey = ref<MarketOutcome['key']>()
-const amount = ref('25')
+const amount = ref<string | number>('25')
 const submitted = ref(false)
 const betError = ref('')
 const submitting = ref(false)
@@ -36,6 +36,14 @@ const home = computed(() => props.fixture.participant1IsHome ? props.fixture.par
 const away = computed(() => props.fixture.participant1IsHome ? props.fixture.participant2 : props.fixture.participant1)
 const tradeTitleId = computed(() => `trade-title-${props.fixture.fixtureId}`)
 const stake = computed(() => Math.max(0, Number(amount.value) || 0))
+const stakeBaseUnits = computed<bigint | null>(() => {
+  try {
+    const value = parseMockUsdc(amount.value)
+    return value > 0n ? value : null
+  } catch {
+    return null
+  }
+})
 const displayOutcomes = computed<MarketOutcome[]>(() => {
   if (
     !onChainMarket.value ||
@@ -52,7 +60,7 @@ const displayOutcomes = computed<MarketOutcome[]>(() => {
 const selected = computed(() => displayOutcomes.value.find(outcome => outcome.key === selectedKey.value))
 const quote = computed(() => {
   const decimalOdds = selected.value?.price ?? 0
-  if (decimalOdds <= 1 || !stake.value) return null
+  if (decimalOdds <= 1 || !stakeBaseUnits.value) return null
 
   return {
     decimalOdds,
@@ -95,13 +103,13 @@ function openWallet() {
 }
 
 async function placeOnChainBet() {
-  if (!quote.value || !selected.value || !connected.value || !import.meta.client) return
+  if (!quote.value || !stakeBaseUnits.value || !selected.value || !connected.value || !import.meta.client) return
   submitting.value = true
   betError.value = ''
   indexError.value = ''
   try {
     const outcome = selectedKey.value === 'home' ? 0 : selectedKey.value === 'draw' ? 1 : 2
-    const result = await placeBet(props.fixture.fixtureId, outcome, parseMockUsdc(amount.value))
+    const result = await placeBet(props.fixture.fixtureId, outcome, stakeBaseUnits.value)
     transactionSignature.value = result.signature
     submitted.value = true
     try {

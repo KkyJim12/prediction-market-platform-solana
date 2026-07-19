@@ -4161,9 +4161,18 @@ body:has(.cup-shell) {
   flex: 1;
   border: 0;
   outline: 0;
+  appearance: textfield;
+  -moz-appearance: textfield;
   color: var(--cup-ink);
   background: transparent;
   font: 500 23px 'DM Mono', monospace;
+}
+
+.trade-amount input::-webkit-inner-spin-button,
+.trade-amount input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .trade-amount strong {
