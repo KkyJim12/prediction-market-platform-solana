@@ -38,10 +38,13 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'CupMarket — World Cup prediction markets',
+      title: 'Purplex - The Best Rate AMM Prediction Market',
       meta: [
-        { name: 'description', content: 'Trade World Cup outcomes with free-tier fixtures and reference odds from TxODDS TxLINE.' },
-        { name: 'theme-color', content: '#07120d' }
+        { name: 'description', content: 'The Best Rate AMM Prediction Market' },
+        { name: 'theme-color', content: '#0b0712' }
+      ],
+      link: [
+        { rel: 'icon', type: 'image/png', href: '/favicon.png' }
       ]
     }
   }

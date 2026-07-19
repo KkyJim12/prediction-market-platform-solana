@@ -73,9 +73,9 @@ onBeforeUnmount(() => {
   <div class="app-shell cup-shell">
     <NuxtRouteAnnouncer />
     <header class="cup-topbar">
-      <NuxtLink class="cup-brand" to="/" aria-label="CupMarket home">
-        <span class="cup-brand-ball"><i /><i /><i /></span>
-        <span>CUP<span>MARKET</span></span>
+      <NuxtLink class="cup-brand" to="/" aria-label="PurpleX home">
+        <img class="cup-brand-logo cup-brand-logo-light" src="/logo-light.png" alt="PurpleX">
+        <img class="cup-brand-logo cup-brand-logo-dark" src="/logo-dark.png" alt="">
       </NuxtLink>
 
       <nav class="desktop-nav cup-nav" aria-label="Main navigation">
@@ -139,9 +139,9 @@ onBeforeUnmount(() => {
 
     <footer class="cup-footer">
       <div>
-        <NuxtLink class="cup-brand" to="/">
-          <span class="cup-brand-ball"><i /><i /><i /></span>
-          <span>CUP<span>MARKET</span></span>
+        <NuxtLink class="cup-brand" to="/" aria-label="PurpleX home">
+          <img class="cup-brand-logo cup-brand-logo-light" src="/logo-light.png" alt="PurpleX">
+          <img class="cup-brand-logo cup-brand-logo-dark" src="/logo-dark.png" alt="">
         </NuxtLink>
         <p>World Cup prediction markets powered by TxLINE free-tier data and an AMM on Solana.</p>
       </div>
