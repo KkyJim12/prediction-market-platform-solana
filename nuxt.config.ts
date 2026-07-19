@@ -4,6 +4,8 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   runtimeConfig: {
+    databaseUrl: '',
+    databaseSsl: false,
     txOddsApiOrigin: 'https://txline.txodds.com',
     txOddsApiToken: '',
     txOddsGuestJwt: '',

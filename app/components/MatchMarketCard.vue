@@ -10,6 +10,7 @@ const submitted = ref(false)
 const betError = ref('')
 const submitting = ref(false)
 const transactionSignature = ref('')
+const indexError = ref('')
 const { connected, walletAddress } = useSolanaWallet()
 const {
   cluster,
@@ -67,6 +68,7 @@ function openTrade(outcome: MarketOutcome) {
   selectedKey.value = outcome.key
   submitted.value = false
   betError.value = ''
+  indexError.value = ''
   tradeOpen.value = true
 }
 
@@ -92,33 +94,29 @@ async function placeOnChainBet() {
   if (!quote.value || !selected.value || !connected.value || !import.meta.client) return
   submitting.value = true
   betError.value = ''
-  const betsKey = `cupmarket-demo-bets:${walletAddress.value}`
+  indexError.value = ''
   try {
     const outcome = selectedKey.value === 'home' ? 0 : selectedKey.value === 'draw' ? 1 : 2
     const result = await placeBet(props.fixture.fixtureId, outcome, parseMockUsdc(amount.value))
     transactionSignature.value = result.signature
-    let bets: Record<string, unknown>[] = []
-    const saved = JSON.parse(localStorage.getItem(betsKey) || '[]')
-    bets = Array.isArray(saved) ? saved : []
-    bets.unshift({
-      id: result.positionIdHex,
-      betAddress: result.betAddress,
-      signature: result.signature,
-      fixtureId: props.fixture.fixtureId,
-      competition: props.fixture.competition,
-      home: home.value,
-      away: away.value,
-      selection: selected.value.label,
-      selectionKey: selected.value.key,
-      odds: Number(result.expectedOdds) / 10_000,
-      stake: stake.value,
-      potentialPayout: Number(result.payout) / 1_000_000,
-      potentialProfit: Number(result.payout) / 1_000_000 - stake.value,
-      placedAt: new Date().toISOString(),
-      status: 'open'
-    })
-    localStorage.setItem(betsKey, JSON.stringify(bets))
     submitted.value = true
+    try {
+      await $fetch('/api/positions', {
+        method: 'POST',
+        body: {
+          signature: result.signature,
+          positionId: result.positionIdHex,
+          betAddress: result.betAddress,
+          fixtureId: props.fixture.fixtureId,
+          competition: props.fixture.competition,
+          home: home.value,
+          away: away.value,
+          selection: selected.value.label
+        }
+      })
+    } catch (error: any) {
+      indexError.value = error?.data?.statusMessage || error?.message || 'Portfolio indexing is temporarily unavailable.'
+    }
     await loadOnChainMarket()
   } catch (error: any) {
     betError.value = error?.data?.statusMessage || error?.message || 'The bet transaction failed.'
@@ -231,6 +229,10 @@ onMounted(loadOnChainMarket)
                 {{ stake.toFixed(2) }} mock USDC was transferred to the pool.
                 <a :href="explorerTransactionUrl(transactionSignature)" target="_blank" rel="noopener">View transaction</a>
               </span>
+            </div>
+            <div v-if="indexError" class="trade-bet-error">
+              <Icon name="lucide:database-zap" />
+              <span>Bet confirmed on Solana, but portfolio indexing failed: {{ indexError }}</span>
             </div>
             <small class="trade-disclaimer">Review: {{ stake.toFixed(2) }} mock USDC on {{ selected?.label || 'selected outcome' }} at locked on-chain odds; potential payout {{ quote?.payout.toFixed(2) || '—' }}; fee payer {{ walletAddress || 'connected wallet' }}; cluster {{ cluster }}; program {{ programId }}. The transaction is simulated before signing. TxLINE is reference data; the oracle-published account is authoritative.</small>
           </section>

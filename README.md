@@ -121,6 +121,38 @@ Every faucet, bet, deposit, and withdrawal is simulated by the configured
 prediction-market RPC before the browser wallet is asked to sign. The connected
 wallet must be set to the same cluster shown in the transaction review.
 
+## PostgreSQL portfolio index
+
+Portfolio and leaderboard data use two PostgreSQL tables:
+
+- `users` stores aggregate volume, realized PnL, base volume, trades, wins, and
+  losses for each wallet.
+- `positions` stores the on-chain bet PDA, market, stake, locked odds, payout,
+  transaction signatures, and the `open`, `won`, `lost`, or `voided` state.
+
+Create a PostgreSQL database and configure the server-only connection:
+
+```dotenv
+NUXT_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/purplex
+NUXT_DATABASE_SSL=false
+```
+
+The Nuxt server creates the schema lazily on the first database request. For a
+controlled deployment, apply the checked-in migration first:
+
+```bash
+psql "$NUXT_DATABASE_URL" -f database/migrations/001_stats_and_positions.sql
+```
+
+After a bet confirms, the server decodes its Solana `place_bet` instruction
+before inserting it. Financial fields are never accepted directly from the
+browser. Portfolio and leaderboard reads also validate program-owned `Bet` and
+`Market` accounts and synchronize finalized position states. A PostgreSQL
+trigger recalculates `users` whenever a position changes.
+
+Only bets placed after this integration are inserted automatically. Historical
+transactions require a separate one-time event backfill.
+
 ## Development Server
 
 Start the development server on `http://localhost:3000`:

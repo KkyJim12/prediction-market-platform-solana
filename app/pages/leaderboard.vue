@@ -10,6 +10,9 @@ type Trader = {
 }
 
 const activeMetric = ref<RankingMetric>('volume')
+const traders = ref<Trader[]>([])
+const leaderboardLoading = ref(false)
+const leaderboardError = ref('')
 
 const metrics: { key: RankingMetric; label: string; icon: string }[] = [
   { key: 'volume', label: 'Volume', icon: 'lucide:chart-no-axes-combined' },
@@ -17,24 +20,24 @@ const metrics: { key: RankingMetric; label: string; icon: string }[] = [
   { key: 'baseVolume', label: 'Base volume', icon: 'lucide:blocks' }
 ]
 
-const traders: Trader[] = [
-  { address: '9vQ8...K7mP', volume: 842350, pnl: 98420, baseVolume: 514800, trades: 184 },
-  { address: 'F4nT...2xLs', volume: 728940, pnl: 74610, baseVolume: 462500, trades: 151 },
-  { address: '7cWp...m3Qa', volume: 681220, pnl: -12480, baseVolume: 601200, trades: 209 },
-  { address: 'Bz6E...8rVn', volume: 574890, pnl: 53270, baseVolume: 389100, trades: 126 },
-  { address: '3pKj...W9dR', volume: 486300, pnl: 41890, baseVolume: 284400, trades: 118 },
-  { address: 'Ht2M...q6Yu', volume: 412760, pnl: -8410, baseVolume: 328900, trades: 97 },
-  { address: 'Dx8A...4eZk', volume: 358420, pnl: 29150, baseVolume: 205600, trades: 83 },
-  { address: '5sRn...L1cV', volume: 294880, pnl: 17620, baseVolume: 194300, trades: 76 }
-]
+async function loadLeaderboard() {
+  leaderboardLoading.value = true
+  leaderboardError.value = ''
+  try {
+    const response = await $fetch<{ traders: Trader[] }>('/api/leaderboard', {
+      query: { metric: activeMetric.value }
+    })
+    traders.value = response.traders
+  } catch (error: any) {
+    traders.value = []
+    leaderboardError.value = error?.data?.statusMessage || error?.message || 'Could not load leaderboard.'
+  } finally {
+    leaderboardLoading.value = false
+  }
+}
 
-const rankedTraders = computed(() =>
-  [...traders].sort((a, b) => b[activeMetric.value] - a[activeMetric.value])
-)
-
-const metricLabel = computed(() =>
-  metrics.find(metric => metric.key === activeMetric.value)?.label || 'Volume'
-)
+watch(activeMetric, loadLeaderboard)
+onMounted(loadLeaderboard)
 
 function formatUsdc(value: number, signed = false) {
   const prefix = signed && value > 0 ? '+' : ''
@@ -42,8 +45,8 @@ function formatUsdc(value: number, signed = false) {
 }
 
 useSeoMeta({
-  title: 'Leaderboard — CupMarket',
-  description: 'Rank CupMarket traders by volume, profit and loss, and base volume.'
+  title: 'Leaderboard — PurpleX',
+  description: 'Rank PurpleX traders by volume, profit and loss, and base volume.'
 })
 </script>
 
@@ -53,12 +56,12 @@ useSeoMeta({
       <div>
         <span class="cup-kicker"><Icon name="lucide:trophy" /> WORLD CUP TRADER RANKINGS</span>
         <h1>Make your call.<br>Climb the table.</h1>
-        <p>Rankings track trading activity across CupMarket match markets. Switch metrics to compare total volume, realized PnL, and eligible base volume.</p>
+        <p>Rankings track trading activity across PurpleX match markets. Switch metrics to compare total volume, realized PnL, and eligible base volume.</p>
       </div>
       <div class="leaderboard-season">
         <span>ACTIVE SEASON</span>
         <strong>WORLD CUP</strong>
-        <small>DEMO DATA · PRE-LAUNCH</small>
+        <small>POSTGRESQL · SOLANA DEVNET</small>
       </div>
     </section>
 
@@ -97,23 +100,29 @@ useSeoMeta({
           <span>TRADES</span>
         </header>
 
-        <article v-for="(trader, index) in rankedTraders" :key="trader.address" class="leaderboard-row">
+        <article v-for="(trader, index) in traders" :key="trader.address" class="leaderboard-row">
           <div class="leaderboard-rank" :class="`rank-${index + 1}`">
             <Icon v-if="index < 3" name="lucide:medal" />
             <strong>{{ String(index + 1).padStart(2, '0') }}</strong>
           </div>
           <div class="leaderboard-trader">
             <span>{{ trader.address.slice(0, 2) }}</span>
-            <div><strong>{{ trader.address }}</strong><small>Solana trader</small></div>
+            <div><strong>{{ trader.address.slice(0, 5) }}…{{ trader.address.slice(-5) }}</strong><small>Solana trader</small></div>
           </div>
           <div><small>VOLUME</small><strong>{{ formatUsdc(trader.volume) }} <i>USDC</i></strong></div>
           <div><small>REALIZED PNL</small><strong :class="trader.pnl >= 0 ? 'positive' : 'negative'">{{ formatUsdc(trader.pnl, true) }} <i>USDC</i></strong></div>
           <div><small>BASE VOLUME</small><strong>{{ formatUsdc(trader.baseVolume) }} <i>USDC</i></strong></div>
           <div><small>TRADES</small><strong>{{ trader.trades }}</strong></div>
         </article>
+
+        <div v-if="!traders.length" class="portfolio-empty-state">
+          <Icon :name="leaderboardLoading ? 'lucide:loader-circle' : leaderboardError ? 'lucide:database-zap' : 'lucide:trophy'" />
+          <h3>{{ leaderboardLoading ? 'Loading leaderboard…' : leaderboardError ? 'Leaderboard unavailable' : 'No ranked traders yet' }}</h3>
+          <p>{{ leaderboardError || 'The first confirmed position will create the first leaderboard entry.' }}</p>
+        </div>
       </section>
 
-      <p class="leaderboard-disclaimer"><Icon name="lucide:database" /> Rankings currently use demonstration data. On-chain indexing will replace these records after the AMM program is deployed.</p>
+      <p class="leaderboard-disclaimer"><Icon name="lucide:database" /> Rankings use PostgreSQL aggregates derived from confirmed Solana position transactions.</p>
     </section>
   </main>
 </template>
