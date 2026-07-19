@@ -2,6 +2,7 @@ import { solanaRpc } from '../../utils/solanaRpc'
 
 type ConfirmBody = {
   signature?: unknown
+  scope?: unknown
 }
 
 type SignatureStatus = {
@@ -21,7 +22,11 @@ type TransactionResult = {
 
 const SOLANA_SIGNATURE_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{80,100}$/
 
-async function transactionFailureMessage(config: ReturnType<typeof useRuntimeConfig>, signature: string) {
+async function transactionFailureMessage(
+  config: ReturnType<typeof useRuntimeConfig>,
+  signature: string,
+  scope: 'txodds' | 'prediction-market'
+) {
   try {
     const transaction = await solanaRpc<TransactionResult | null>(
       config,
@@ -30,7 +35,8 @@ async function transactionFailureMessage(config: ReturnType<typeof useRuntimeCon
         encoding: 'json',
         commitment: 'confirmed',
         maxSupportedTransactionVersion: 0
-      }]
+      }],
+      scope
     )
     const logs = transaction?.meta?.logMessages ?? []
     const anchorError = logs.find(log => log.includes('AnchorError caused by account:'))
@@ -51,6 +57,7 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')
   const body = await readBody<ConfirmBody>(event)
   const signature = typeof body?.signature === 'string' ? body.signature.trim() : ''
+  const scope = body?.scope === 'prediction-market' ? 'prediction-market' : 'txodds'
 
   if (!SOLANA_SIGNATURE_PATTERN.test(signature)) {
     throw createError({
@@ -66,14 +73,15 @@ export default defineEventHandler(async (event) => {
     const result = await solanaRpc<SignatureStatusesResult>(
       config,
       'getSignatureStatuses',
-      [[signature], { searchTransactionHistory: false }]
+      [[signature], { searchTransactionHistory: false }],
+      scope
     )
     const status = result.value[0]
 
     if (status?.err) {
       throw createError({
         statusCode: 422,
-        statusMessage: await transactionFailureMessage(config, signature)
+        statusMessage: await transactionFailureMessage(config, signature, scope)
       })
     }
     if (status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized') {

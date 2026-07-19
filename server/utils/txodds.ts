@@ -128,9 +128,9 @@ export async function txOddsRequest<T>(
 
   const request = async (renewGuest = false) => {
     const jwt = await startGuestSession(config, renewGuest)
-    // The server environment is the durable source of truth. The in-memory
-    // activation token is only a fallback until it is saved and Nuxt restarts.
-    const apiToken = config.txOddsApiToken || activatedApiToken
+    // A newly activated token replaces the configured token for this server
+    // session. Save it in the environment to preserve it after a restart.
+    const apiToken = activatedApiToken || config.txOddsApiToken
     return $fetch<T>(`${apiOrigin(config)}${path}`, {
       query,
       timeout: 15_000,
@@ -162,7 +162,7 @@ export async function txOddsOpenStream(
 
   const request = async (renewGuest = false) => {
     const jwt = await startGuestSession(config, renewGuest)
-    const apiToken = config.txOddsApiToken || activatedApiToken
+    const apiToken = activatedApiToken || config.txOddsApiToken
     return fetch(`${apiOrigin(config)}${path}`, {
       signal,
       headers: {

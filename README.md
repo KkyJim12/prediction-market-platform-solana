@@ -96,6 +96,31 @@ The trade ticket is an AMM quote preview. It calculates shares, average price,
 price impact, post-trade probability, and potential payout, but does not submit
 an on-chain transaction until a market program is connected.
 
+## Prediction-market contract
+
+The faucet, match tickets, and liquidity page integrate with the single-pool
+Anchor program `9zgAu5MyTuFsGSU7mCwqQSYNEubmaKaMGyuzuGWyj2qg`. Prediction
+market reads use a separate server-side RPC so the TxLINE subscription network
+can remain independently configured.
+
+Development defaults to Solana devnet. Configure the deployed cluster and
+program in `.env`:
+
+```dotenv
+NUXT_PREDICTION_MARKET_RPC_URL=https://api.devnet.solana.com
+NUXT_PUBLIC_PREDICTION_MARKET_CLUSTER=devnet
+NUXT_PUBLIC_PREDICTION_MARKET_PROGRAM_ID=9zgAu5MyTuFsGSU7mCwqQSYNEubmaKaMGyuzuGWyj2qg
+```
+
+The app hashes the decimal TxLINE fixture ID with SHA-256 to derive
+`["market", match_id]`. The oracle worker must publish markets using that same
+external ID representation. TxLINE prices remain reference data; executable
+odds always come from the on-chain `Market` account.
+
+Every faucet, bet, deposit, and withdrawal is simulated by the configured
+prediction-market RPC before the browser wallet is asked to sign. The connected
+wallet must be set to the same cluster shown in the transaction review.
+
 ## Development Server
 
 Start the development server on `http://localhost:3000`:

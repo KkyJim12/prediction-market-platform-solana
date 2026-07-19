@@ -14,6 +14,12 @@ const emit = defineEmits<{
   connectWallet: []
 }>()
 
+const props = withDefaults(defineProps<{
+  replacement?: boolean
+}>(), {
+  replacement: false
+})
+
 const config = useRuntimeConfig()
 const { connected, walletAddress, requireProvider } = useSolanaWallet()
 
@@ -189,14 +195,22 @@ async function copyToken() {
   await navigator.clipboard.writeText(apiToken.value)
   copied.value = true
 }
+
+function generateAnotherToken() {
+  currentStep.value = 0
+  errorMessage.value = ''
+  txSignature.value = ''
+  apiToken.value = ''
+  copied.value = false
+}
 </script>
 
 <template>
   <section class="txline-activation" data-testid="txline-activation">
     <div class="txline-activation-copy">
       <span class="cup-kicker"><Icon name="lucide:key-round" /> TXLINE ACCESS</span>
-      <h2>Activate the World Cup feed</h2>
-      <p>Subscribe on Solana for four weeks, then activate the API with the same wallet. The free bundle uses no TxL, but network fees still apply.</p>
+      <h2>{{ props.replacement ? 'Generate a new API token' : 'Activate the World Cup feed' }}</h2>
+      <p>{{ props.replacement ? 'Your existing token remains available until the new activation succeeds. Subscribe again, then copy the replacement token into the server environment.' : 'Subscribe on Solana for four weeks, then activate the API with the same wallet. The free bundle uses no TxL, but network fees still apply.' }}</p>
 
       <div class="txline-tier-picker">
         <label :class="{ selected: serviceLevel === 1 }">
@@ -218,7 +232,7 @@ async function copyToken() {
         @click="subscribeAndActivate"
       >
         <Icon :name="pending ? 'lucide:loader-circle' : apiToken ? 'lucide:circle-check' : 'lucide:wallet-cards'" />
-        {{ apiToken ? 'Feed activated' : pending ? steps[currentStep - 1] : connected ? 'Subscribe & activate' : 'Connect wallet to continue' }}
+        {{ apiToken ? 'New token generated' : pending ? steps[currentStep - 1] : connected ? props.replacement ? 'Subscribe & generate token' : 'Subscribe & activate' : 'Connect wallet to continue' }}
       </button>
     </div>
 
@@ -252,9 +266,14 @@ async function copyToken() {
           <Icon name="lucide:shield-check" />
           <span><strong>API token activated</strong><small>Active for this server session</small></span>
         </div>
-        <button type="button" @click="copyToken">
-          <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" />{{ copied ? 'Copied' : 'Copy token' }}
-        </button>
+        <div class="txline-token-actions">
+          <button type="button" @click="copyToken">
+            <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" />{{ copied ? 'Copied' : 'Copy token' }}
+          </button>
+          <button type="button" @click="generateAnotherToken">
+            <Icon name="lucide:refresh-cw" /> Generate another
+          </button>
+        </div>
         <p>Save it as <code>NUXT_TX_ODDS_API_TOKEN</code> before restarting the server.</p>
       </div>
     </div>

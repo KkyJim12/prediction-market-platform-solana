@@ -8,10 +8,13 @@ export default defineNuxtConfig({
     txOddsApiToken: '',
     txOddsGuestJwt: '',
     solanaRpcUrl: 'https://api.mainnet-beta.solana.com',
+    predictionMarketRpcUrl: 'https://api.devnet.solana.com',
     public: {
       solanaCluster: 'mainnet-beta',
       txOddsProgramId: '9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA',
-      txOddsTokenMint: 'Zhw9TVKp68a1QrftncMSd6ELXKDtpVMNuMGr1jNwdeL'
+      txOddsTokenMint: 'Zhw9TVKp68a1QrftncMSd6ELXKDtpVMNuMGr1jNwdeL',
+      predictionMarketCluster: 'devnet',
+      predictionMarketProgramId: '9zgAu5MyTuFsGSU7mCwqQSYNEubmaKaMGyuzuGWyj2qg'
     }
   },
 

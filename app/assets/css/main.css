@@ -257,6 +257,95 @@ a {
   cursor: pointer;
 }
 
+.wallet-control {
+  position: relative;
+}
+
+.wallet-chevron {
+  width: 14px !important;
+  height: 14px !important;
+  transition: transform .2s ease;
+}
+
+.wallet-chevron.open {
+  transform: rotate(180deg);
+}
+
+.wallet-dropdown {
+  position: absolute;
+  z-index: 120;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 260px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .28);
+}
+
+.wallet-dropdown-account {
+  display: grid;
+  gap: 7px;
+  padding: 11px 12px 13px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+.wallet-dropdown-account span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font: 600 9px 'DM Mono';
+  letter-spacing: .07em;
+}
+
+.wallet-dropdown-account i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 4px var(--green-soft);
+}
+
+.wallet-dropdown-account strong {
+  font: 600 12px 'DM Mono';
+}
+
+.wallet-dropdown > a,
+.wallet-dropdown > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.wallet-dropdown > a:hover,
+.wallet-dropdown > button:hover {
+  background: var(--surface-2);
+}
+
+.wallet-dropdown > a svg,
+.wallet-dropdown > button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.wallet-dropdown .wallet-logout {
+  color: #ef6a6a;
+}
+
 .wallet-orb {
   width: 20px;
   height: 20px;
@@ -2254,6 +2343,10 @@ main {
     padding: 0;
     justify-content: center;
     font-size: 0;
+  }
+
+  .wallet-button .wallet-chevron {
+    display: none;
   }
 
   .hero {
@@ -4943,6 +5036,27 @@ body:has(.cup-shell) {
   animation: match-spin .8s linear infinite;
 }
 
+.settings-connected-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-connected-actions button {
+  justify-content: center;
+}
+
+.settings-connected-actions button.generate {
+  color: #08140d;
+  border-color: var(--cup-lime);
+  background: var(--cup-lime);
+}
+
+.txline-token-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .settings-notes {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -4971,6 +5085,218 @@ body:has(.cup-shell) {
   color: var(--cup-muted);
   font-size: 10px;
   line-height: 1.6;
+}
+
+.settings-contract-heading {
+  margin-top: 58px;
+}
+
+.settings-text-button {
+  padding: 0;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  border: 0;
+  color: var(--cup-muted);
+  background: transparent;
+  font: 500 9px 'DM Mono', monospace;
+  cursor: pointer;
+}
+
+.settings-text-button:disabled svg,
+.settings-pool-actions button:disabled svg {
+  animation: match-spin .8s linear infinite;
+}
+
+.settings-pool-ready,
+.settings-pool-initializer {
+  border: 1px solid var(--cup-line);
+  background: var(--cup-panel);
+}
+
+.settings-pool-ready {
+  padding: 30px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 22px;
+}
+
+.settings-pool-ready span,
+.settings-pool-fields label > span,
+.settings-transaction-review > span {
+  color: var(--cup-muted);
+  font: 500 8px 'DM Mono', monospace;
+  letter-spacing: .1em;
+}
+
+.settings-pool-ready h3 {
+  margin: 8px 0 18px;
+  font-size: 22px;
+}
+
+.settings-pool-ready dl,
+.settings-transaction-review dl {
+  margin: 0;
+}
+
+.settings-pool-ready dl div,
+.settings-transaction-review dl div {
+  padding: 8px 0;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 18px;
+  border-top: 1px solid var(--cup-line);
+}
+
+.settings-pool-ready dt,
+.settings-transaction-review dt {
+  color: var(--cup-muted);
+  font-size: 9px;
+}
+
+.settings-pool-ready dd,
+.settings-transaction-review dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 500 9px 'DM Mono', monospace;
+}
+
+.settings-pool-ready a {
+  margin-top: 16px;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--cup-lime);
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.settings-pool-initializer {
+  padding: 30px;
+}
+
+.settings-pool-warning {
+  padding: 16px;
+  display: flex;
+  gap: 13px;
+  border: 1px solid rgba(255, 190, 81, .35);
+  color: #ffbe51;
+  background: rgba(255, 190, 81, .06);
+}
+
+.settings-pool-warning p {
+  margin: 5px 0 0;
+  color: var(--cup-muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.settings-pool-fields {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-pool-fields label {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-pool-fields .settings-wide-field {
+  grid-column: 1 / -1;
+}
+
+.settings-pool-fields label > div {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--cup-line);
+  background: var(--cup-panel-2);
+}
+
+.settings-pool-fields input {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 13px;
+  border: 1px solid var(--cup-line);
+  outline: 0;
+  color: var(--cup-ink);
+  background: var(--cup-panel-2);
+  font: 500 10px 'DM Mono', monospace;
+}
+
+.settings-pool-fields label > div input {
+  border: 0;
+}
+
+.settings-pool-fields small {
+  padding-right: 12px;
+  white-space: nowrap;
+  color: var(--cup-muted);
+  font-size: 8px;
+}
+
+.settings-transaction-review {
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid var(--cup-line);
+  background: var(--cup-panel-2);
+}
+
+.settings-transaction-review dl {
+  margin-top: 12px;
+}
+
+.settings-confirm-check {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: var(--cup-muted);
+  font-size: 10px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.settings-confirm-check input {
+  accent-color: var(--cup-lime);
+}
+
+.settings-pool-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 13px;
+  align-items: center;
+}
+
+.settings-pool-actions button {
+  min-height: 44px;
+  padding: 0 17px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--cup-line);
+  color: var(--cup-ink);
+  background: var(--cup-panel-2);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.settings-pool-actions button.primary {
+  border-color: var(--cup-lime);
+  color: #08140d;
+  background: var(--cup-lime);
+}
+
+.settings-pool-actions button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.settings-pool-actions small {
+  color: var(--cup-muted);
+  font-size: 9px;
 }
 
 @media (max-width: 760px) {
@@ -5008,8 +5334,39 @@ body:has(.cup-shell) {
     justify-content: center;
   }
 
+  .settings-connected-actions {
+    grid-column: 1 / 3;
+  }
+
+  .settings-connected-actions button {
+    grid-column: auto;
+  }
+
   .settings-notes {
     grid-template-columns: 1fr;
+  }
+
+  .settings-pool-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-pool-fields .settings-wide-field {
+    grid-column: auto;
+  }
+
+  .settings-pool-ready dl div,
+  .settings-transaction-review dl div {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .settings-pool-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .settings-pool-actions button {
+    justify-content: center;
   }
 }
 
@@ -5091,7 +5448,6 @@ body:has(.cup-shell) {
 .earn-section-label,
 .earn-ticket-head span,
 .earn-amount > span,
-.earn-scenario span,
 .earn-wallet-row span {
   color: var(--cup-muted);
   font: 600 8px 'DM Mono', monospace;
@@ -5366,36 +5722,8 @@ body:has(.cup-shell) {
   border-color: var(--cup-lime);
 }
 
-.earn-scenario {
-  margin-top: 20px;
-  padding: 16px;
-  border: 1px solid var(--cup-line);
-  background: var(--cup-panel-2);
-}
-
-.earn-scenario > div {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.earn-scenario strong {
-  font: 600 12px 'DM Mono', monospace;
-}
-
-.earn-scenario input {
-  width: 100%;
-  margin: 16px 0 7px;
-  accent-color: var(--cup-lime);
-}
-
-.earn-scenario small {
-  color: var(--cup-muted);
-  font-size: 8px;
-}
-
 .earn-quote-rows {
-  margin: 18px 0;
+  margin: 24px 0 18px;
 }
 
 .earn-quote-rows > div,

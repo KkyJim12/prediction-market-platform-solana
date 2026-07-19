@@ -1,5 +1,6 @@
 type SolanaRpcConfig = {
   solanaRpcUrl?: string
+  predictionMarketRpcUrl?: string
 }
 
 type SolanaRpcResponse<T> = {
@@ -17,9 +18,13 @@ let requestId = 0
 export async function solanaRpc<T>(
   config: SolanaRpcConfig,
   method: string,
-  params: unknown[] = []
+  params: unknown[] = [],
+  scope: 'txodds' | 'prediction-market' = 'txodds'
 ) {
-  const rpcUrl = new URL(config.solanaRpcUrl || 'https://api.mainnet-beta.solana.com')
+  const configuredUrl = scope === 'prediction-market'
+    ? config.predictionMarketRpcUrl || 'https://api.devnet.solana.com'
+    : config.solanaRpcUrl || 'https://api.mainnet-beta.solana.com'
+  const rpcUrl = new URL(configuredUrl)
   if (rpcUrl.protocol !== 'https:') {
     throw createError({ statusCode: 500, statusMessage: 'Solana RPC URL must use HTTPS' })
   }

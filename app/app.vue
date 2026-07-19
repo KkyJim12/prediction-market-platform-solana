@@ -2,12 +2,23 @@
 const colorMode = useColorMode()
 const route = useRoute()
 const walletOpen = ref(false)
+const walletMenuOpen = ref(false)
+const walletControl = ref<HTMLElement>()
 const mobileNavOpen = ref(false)
 const walletMessage = ref('')
-const { walletLabel, connect } = useSolanaWallet()
+const {
+  walletName,
+  walletAddress,
+  walletLabel,
+  connected,
+  connect,
+  restore,
+  disconnect
+} = useSolanaWallet()
 
 watch(() => route.fullPath, () => {
   mobileNavOpen.value = false
+  walletMenuOpen.value = false
 })
 
 function toggleTheme() {
@@ -24,6 +35,38 @@ async function connectWallet(providerName: 'Phantom' | 'Solflare') {
     walletMessage.value = error?.message || 'Connection was cancelled.'
   }
 }
+
+function toggleWallet() {
+  if (connected.value) {
+    walletMenuOpen.value = !walletMenuOpen.value
+  } else {
+    walletOpen.value = true
+  }
+}
+
+async function logoutWallet() {
+  walletMenuOpen.value = false
+  await disconnect()
+}
+
+function closeWalletMenu(event: MouseEvent) {
+  if (!walletControl.value?.contains(event.target as Node)) walletMenuOpen.value = false
+}
+
+function closeWalletMenuOnEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape') walletMenuOpen.value = false
+}
+
+onMounted(async () => {
+  document.addEventListener('click', closeWalletMenu)
+  document.addEventListener('keydown', closeWalletMenuOnEscape)
+  await restore()
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeWalletMenu)
+  document.removeEventListener('keydown', closeWalletMenuOnEscape)
+})
 </script>
 
 <template>
@@ -45,13 +88,36 @@ async function connectWallet(providerName: 'Phantom' | 'Solflare') {
       </nav>
 
       <div class="header-actions">
-        <div class="network-pill"><span class="network-dot" /><span>SOLANA</span></div>
+        <div class="network-pill"><span class="network-dot" /><span>SOLANA DEVNET</span></div>
         <button class="icon-button" type="button" :title="colorMode.value === 'dark' ? 'Use light mode' : 'Use dark mode'" @click="toggleTheme">
           <Icon :name="colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'" />
         </button>
-        <button class="wallet-button cup-wallet" type="button" @click="walletOpen = true">
-          <Icon name="lucide:wallet-cards" />{{ walletLabel }}
-        </button>
+        <div ref="walletControl" class="wallet-control">
+          <button
+            class="wallet-button cup-wallet"
+            type="button"
+            :aria-expanded="connected ? walletMenuOpen : undefined"
+            :aria-haspopup="connected ? 'menu' : 'dialog'"
+            @click="toggleWallet"
+          >
+            <Icon name="lucide:wallet-cards" />{{ walletLabel }}
+            <Icon v-if="connected" name="lucide:chevron-down" class="wallet-chevron" :class="{ open: walletMenuOpen }" />
+          </button>
+          <Transition name="dropdown-pop">
+            <div v-if="connected && walletMenuOpen" class="wallet-dropdown" role="menu">
+              <div class="wallet-dropdown-account">
+                <span><i /> CONNECTED WITH {{ walletName.toUpperCase() }}</span>
+                <strong>{{ walletAddress.slice(0, 7) }}…{{ walletAddress.slice(-7) }}</strong>
+              </div>
+              <NuxtLink to="/portfolio" role="menuitem">
+                <Icon name="lucide:chart-pie" /> View portfolio
+              </NuxtLink>
+              <button type="button" role="menuitem" class="wallet-logout" @click="logoutWallet">
+                <Icon name="lucide:log-out" /> Disconnect
+              </button>
+            </div>
+          </Transition>
+        </div>
         <button class="mobile-menu" type="button" title="Open menu" @click="mobileNavOpen = !mobileNavOpen">
           <Icon name="lucide:menu" />
         </button>

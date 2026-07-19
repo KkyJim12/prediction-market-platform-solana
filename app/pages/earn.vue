@@ -1,36 +1,141 @@
 <script setup lang="ts">
 const { connected, walletAddress } = useSolanaWallet()
+const {
+  cluster,
+  programId,
+  fetchPool,
+  fetchWalletState,
+  fundPool,
+  withdrawPool,
+  explorerTransactionUrl
+} = usePredictionMarket()
 
-const amount = ref(100)
-const poolReturn = ref(5)
+const amount = ref('100')
 const action = ref<'deposit' | 'withdraw'>('deposit')
-
-const validAmount = computed(() =>
-  Number.isFinite(amount.value) && amount.value > 0
-    ? amount.value
-    : 0
-)
-
-const scenarioPnl = computed(() => validAmount.value * poolReturn.value / 100)
-const scenarioValue = computed(() => validAmount.value + scenarioPnl.value)
-
-const usdc = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2
-})
-
-function formatUsdc(value: number) {
-  return usdc.format(value)
-}
+const pool = ref<Awaited<ReturnType<typeof fetchPool>>>(null)
+const shares = ref(0n)
+const balance = ref(0n)
+const pending = ref(false)
+const errorMessage = ref('')
+const transactionSignature = ref('')
 
 function openWallet() {
   if (!import.meta.client) return
   document.querySelector<HTMLButtonElement>('.cup-wallet')?.click()
 }
 
+const netEquity = computed(() => pool.value
+  ? pool.value.vaultBalance - pool.value.reservedLiability
+  : 0n
+)
+const utilization = computed(() => pool.value?.vaultBalance
+  ? Number(pool.value.reservedLiability * 10_000n / pool.value.vaultBalance) / 100
+  : 0
+)
+const positionValue = computed(() => pool.value?.totalShares
+  ? shares.value * netEquity.value / pool.value.totalShares
+  : 0n
+)
+const parsedAmount = computed<bigint | null>(() => {
+  try {
+    const value = parseMockUsdc(amount.value)
+    return value > 0n ? value : null
+  } catch {
+    return null
+  }
+})
+const depositShares = computed(() => {
+  const value = parsedAmount.value
+  if (!value || !pool.value) return 0n
+  if (pool.value.totalShares === 0n) return value
+  if (netEquity.value <= 0n) return 0n
+  return value * pool.value.totalShares / netEquity.value
+})
+const withdrawalShares = computed(() => {
+  const value = parsedAmount.value
+  if (!value || !pool.value || netEquity.value <= 0n || pool.value.totalShares === 0n) return 0n
+  if (value >= positionValue.value) return shares.value
+  return value * pool.value.totalShares / netEquity.value
+})
+const withdrawalAmount = computed(() => pool.value?.totalShares && withdrawalShares.value
+  ? withdrawalShares.value * netEquity.value / pool.value.totalShares
+  : 0n
+)
+const availableAmount = computed(() => action.value === 'deposit' ? balance.value : positionValue.value)
+const amountError = computed(() => {
+  if (!amount.value.trim()) return ''
+  if (!parsedAmount.value) return 'Enter an amount greater than zero with no more than 6 decimals.'
+  if (parsedAmount.value > availableAmount.value) {
+    return action.value === 'deposit'
+      ? 'Deposit exceeds your mock USDC balance.'
+      : 'Withdrawal exceeds your current LP position value.'
+  }
+  if (action.value === 'deposit' && depositShares.value === 0n) {
+    return 'This deposit is too small to mint one LP share.'
+  }
+  if (action.value === 'withdraw' && withdrawalShares.value === 0n) {
+    return 'This withdrawal is too small to redeem one LP share.'
+  }
+  return ''
+})
+const canSubmit = computed(() =>
+  Boolean(connected.value && pool.value && parsedAmount.value && !amountError.value && !pending.value)
+)
+
+function setAction(nextAction: 'deposit' | 'withdraw') {
+  action.value = nextAction
+  amount.value = '100'
+  errorMessage.value = ''
+  transactionSignature.value = ''
+}
+
+function setPercentage(percent: bigint) {
+  const available = availableAmount.value
+  const selected = percent === 100n ? available : available * percent / 100n
+  amount.value = formatMockUsdc(selected, 6)
+}
+
+async function refreshOnChainState() {
+  errorMessage.value = ''
+  try {
+    pool.value = await fetchPool()
+    if (walletAddress.value) {
+      const state = await fetchWalletState()
+      shares.value = state.shares
+      balance.value = state.balance
+    } else {
+      shares.value = 0n
+      balance.value = 0n
+    }
+  } catch (error: any) {
+    errorMessage.value = error?.data?.statusMessage || error?.message || 'Could not read the liquidity pool.'
+  }
+}
+
+async function submitLiquidity() {
+  if (!canSubmit.value || !parsedAmount.value) return
+  pending.value = true
+  errorMessage.value = ''
+  try {
+    await refreshOnChainState()
+    if (errorMessage.value || !parsedAmount.value || amountError.value) return
+    transactionSignature.value = action.value === 'deposit'
+      ? await fundPool(parsedAmount.value)
+      : await withdrawPool(withdrawalShares.value)
+    await refreshOnChainState()
+  } catch (error: any) {
+    errorMessage.value = error?.data?.statusMessage || error?.message || 'The liquidity transaction failed.'
+  } finally {
+    pending.value = false
+  }
+}
+
+watch(walletAddress, refreshOnChainState)
+onMounted(refreshOnChainState)
+
 useSeoMeta({
   title: 'Earn — CupMarket',
-  description: 'Preview supplying USDC to the CupMarket counterparty liquidity pool.'
+  description: 'Supply or withdraw mock USDC from the CupMarket counterparty liquidity pool.'
 })
 </script>
 
@@ -40,9 +145,9 @@ useSeoMeta({
       <div>
         <span class="cup-kicker"><Icon name="lucide:landmark" /> COUNTERPARTY LIQUIDITY</span>
         <h1>Earn from the other side.</h1>
-        <p>Supply USDC to back prediction-market trades. When traders lose, the pool gains. When traders win, the pool pays their profit and liquidity providers absorb the loss pro rata.</p>
+        <p>Supply mock USDC to back prediction-market trades. When traders lose, the pool gains. When traders win, the pool pays their profit and liquidity providers absorb the loss pro rata.</p>
         <div class="earn-hero-tags">
-          <span><Icon name="lucide:circle-dollar-sign" /> USDC vault</span>
+          <span><Icon name="lucide:circle-dollar-sign" /> Mock USDC vault</span>
           <span><Icon name="lucide:scale" /> Pro-rata P&amp;L</span>
           <span><Icon name="lucide:shield-alert" /> Principal at risk</span>
         </div>
@@ -50,17 +155,17 @@ useSeoMeta({
 
       <div class="earn-model-badge">
         <span>POOL STATUS</span>
-        <strong><i /> CONTRACT REQUIRED</strong>
-        <p>Interface preview only. No vault or pool program is deployed in this repository.</p>
+        <strong><i /> {{ pool ? `LIVE ON ${cluster.toUpperCase()}` : 'NOT INITIALIZED' }}</strong>
+        <p>{{ pool ? 'Reading the single counterparty pool directly from Solana.' : `No pool account was found for ${programId} on ${cluster}.` }}</p>
       </div>
     </section>
 
     <section class="earn-content">
       <div class="earn-metrics">
-        <div><span>POOL TVL</span><strong>—</strong><small>On-chain vault not connected</small></div>
-        <div><span>SHARE PRICE</span><strong>—</strong><small>Requires pool accounting</small></div>
-        <div><span>UTILIZATION</span><strong>—</strong><small>Requires open exposure</small></div>
-        <div><span>YOUR POSITION</span><strong>{{ connected ? '0.00' : '—' }}</strong><small>USDC</small></div>
+        <div><span>POOL TVL</span><strong>{{ pool ? formatMockUsdc(pool.vaultBalance) : '—' }}</strong><small>mock USDC in vault</small></div>
+        <div><span>NET EQUITY</span><strong>{{ pool ? formatMockUsdc(netEquity) : '—' }}</strong><small>After reserved payouts</small></div>
+        <div><span>UTILIZATION</span><strong>{{ pool ? `${utilization.toFixed(2)}%` : '—' }}</strong><small>Reserved / vault</small></div>
+        <div><span>YOUR POSITION</span><strong>{{ connected ? formatMockUsdc(positionValue) : '—' }}</strong><small>{{ shares.toString() }} internal shares</small></div>
       </div>
 
       <div class="earn-main-grid">
@@ -72,7 +177,7 @@ useSeoMeta({
             <article>
               <b>01</b>
               <Icon name="lucide:wallet-minimal" />
-              <div><h3>Supply USDC</h3><p>Your deposit receives vault shares representing a pro-rata claim on pool assets.</p></div>
+              <div><h3>Supply mock USDC</h3><p>Your deposit receives internal LP shares representing a pro-rata claim on pool assets.</p></div>
             </article>
             <article>
               <b>02</b>
@@ -82,7 +187,7 @@ useSeoMeta({
             <article>
               <b>03</b>
               <Icon name="lucide:scale" />
-              <div><h3>Settle wins and losses</h3><p>Trader losses increase pool assets; trader profits and settlement costs reduce them.</p></div>
+              <div><h3>Redeem LP shares</h3><p>Enter a mock USDC amount and the app converts it to the correct internal share quantity before signing.</p></div>
             </article>
           </div>
 
@@ -91,13 +196,13 @@ useSeoMeta({
               <span>TRADER LOSES</span>
               <Icon name="lucide:trending-up" />
               <strong>Pool gains</strong>
-              <p>Lost trader collateral remains in the pool and raises the value of each vault share.</p>
+              <p>Lost trader collateral remains in the pool and raises the value of each LP share.</p>
             </div>
             <div class="pool-loses">
               <span>TRADER WINS</span>
               <Icon name="lucide:trending-down" />
               <strong>Pool pays</strong>
-              <p>Winning payouts come from pool collateral and lower the value of each vault share.</p>
+              <p>Winning payouts come from pool collateral and lower the value of each LP share.</p>
             </div>
           </div>
         </section>
@@ -105,49 +210,58 @@ useSeoMeta({
         <aside class="earn-ticket">
           <div class="earn-ticket-head">
             <div>
-              <span>USDC COUNTERPARTY POOL</span>
-              <h2>Liquidity quote</h2>
+              <span>MOCK USDC COUNTERPARTY POOL</span>
+              <h2>Liquidity transaction</h2>
             </div>
-            <span class="preview-pill">PREVIEW</span>
+            <span class="preview-pill">{{ cluster.toUpperCase() }}</span>
           </div>
 
           <div class="earn-action-tabs">
-            <button type="button" :class="{ active: action === 'deposit' }" @click="action = 'deposit'">Deposit</button>
-            <button type="button" :class="{ active: action === 'withdraw' }" @click="action = 'withdraw'">Withdraw</button>
+            <button type="button" :class="{ active: action === 'deposit' }" @click="setAction('deposit')">Deposit</button>
+            <button type="button" :class="{ active: action === 'withdraw' }" @click="setAction('withdraw')">Withdraw</button>
           </div>
 
           <label class="earn-amount">
-            <span>{{ action === 'deposit' ? 'AMOUNT TO SUPPLY' : 'SHARES TO REDEEM' }}</span>
+            <span>{{ action === 'deposit' ? 'AMOUNT TO SUPPLY' : 'AMOUNT TO WITHDRAW' }}</span>
             <div>
-              <input v-model.number="amount" type="number" min="0" step="1" inputmode="decimal" aria-label="USDC amount">
-              <strong>USDC</strong>
+              <input v-model="amount" type="text" inputmode="decimal" autocomplete="off" aria-label="Liquidity amount">
+              <strong>mock USDC</strong>
             </div>
           </label>
 
           <div class="earn-quick-amounts">
-            <button v-for="value in [100, 500, 1000, 5000]" :key="value" type="button" @click="amount = value">{{ value.toLocaleString() }}</button>
-          </div>
-
-          <div class="earn-scenario">
-            <div>
-              <span>POOL RETURN SCENARIO</span>
-              <strong :class="{ positive: poolReturn >= 0, negative: poolReturn < 0 }">{{ poolReturn > 0 ? '+' : '' }}{{ poolReturn }}%</strong>
-            </div>
-            <input v-model.number="poolReturn" type="range" min="-20" max="20" step="1" aria-label="Pool return scenario">
-            <small>Illustrative scenario, not an APY or return forecast.</small>
+            <button v-for="percent in [25n, 50n, 75n, 100n]" :key="percent.toString()" type="button" @click="setPercentage(percent)">
+              {{ percent === 100n ? 'MAX' : `${percent}%` }}
+            </button>
           </div>
 
           <div class="earn-quote-rows">
-            <div><span>Starting position</span><strong>{{ formatUsdc(validAmount) }} USDC</strong></div>
-            <div><span>Scenario P&amp;L</span><strong :class="{ positive: scenarioPnl >= 0, negative: scenarioPnl < 0 }">{{ scenarioPnl >= 0 ? '+' : '' }}{{ formatUsdc(scenarioPnl) }} USDC</strong></div>
-            <div class="earn-quote-total"><span>Scenario value</span><strong>{{ formatUsdc(scenarioValue) }} USDC</strong></div>
+            <div>
+              <span>{{ action === 'deposit' ? 'Wallet balance' : 'Position value' }}</span>
+              <strong>{{ formatMockUsdc(availableAmount, 6) }} mock USDC</strong>
+            </div>
+            <div>
+              <span>On-chain token amount</span>
+              <strong>{{ parsedAmount?.toString() || '—' }} base units</strong>
+            </div>
+            <div class="earn-quote-total">
+              <span>{{ action === 'deposit' ? 'Estimated shares received' : 'LP shares to redeem' }}</span>
+              <strong>{{ action === 'deposit' ? depositShares.toString() : withdrawalShares.toString() }}</strong>
+            </div>
+            <div v-if="action === 'withdraw'">
+              <span>Estimated amount received</span>
+              <strong>{{ formatMockUsdc(withdrawalAmount, 6) }} mock USDC</strong>
+            </div>
           </div>
+
+          <div v-if="amountError" class="trade-bet-error"><Icon name="lucide:circle-alert" />{{ amountError }}</div>
 
           <button v-if="!connected" class="earn-submit" type="button" @click="openWallet">
             <Icon name="lucide:wallet-cards" /> Connect wallet
           </button>
-          <button v-else class="earn-submit" type="button" disabled>
-            <Icon name="lucide:construction" /> Pool program not connected
+          <button v-else class="earn-submit" type="button" :disabled="!canSubmit" @click="submitLiquidity">
+            <Icon :name="pending ? 'lucide:loader-circle' : action === 'deposit' ? 'lucide:landmark' : 'lucide:arrow-down-to-line'" />
+            {{ pending ? 'Simulating & submitting…' : action === 'deposit' ? 'Deposit mock USDC' : 'Withdraw mock USDC' }}
           </button>
 
           <div v-if="connected" class="earn-wallet-row">
@@ -155,7 +269,9 @@ useSeoMeta({
             <strong>{{ walletAddress.slice(0, 5) }}…{{ walletAddress.slice(-5) }}</strong>
           </div>
 
-          <p class="earn-risk"><Icon name="lucide:triangle-alert" /> Liquidity provision is not yield-guaranteed. Pool losses can reduce principal, and withdrawals may be delayed while collateral backs open markets.</p>
+          <div v-if="errorMessage" class="trade-bet-error"><Icon name="lucide:circle-alert" />{{ errorMessage }}</div>
+          <p v-if="transactionSignature"><a :href="explorerTransactionUrl(transactionSignature)" target="_blank" rel="noopener">View confirmed transaction</a></p>
+          <p class="earn-risk"><Icon name="lucide:triangle-alert" /> Review: {{ amount || '0' }} mock USDC {{ action }}; {{ action === 'deposit' ? depositShares : withdrawalShares }} LP shares {{ action === 'deposit' ? 'estimated to mint' : 'to burn' }}; fee payer {{ walletAddress || 'connected wallet' }}; cluster {{ cluster }}; program {{ programId }}. Transactions are simulated before signing. Liquidity provision is not yield-guaranteed and pool losses can reduce principal.</p>
         </aside>
       </div>
     </section>

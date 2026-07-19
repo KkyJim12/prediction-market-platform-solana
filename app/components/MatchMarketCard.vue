@@ -8,7 +8,16 @@ const selectedKey = ref<MarketOutcome['key']>()
 const amount = ref('25')
 const submitted = ref(false)
 const betError = ref('')
+const submitting = ref(false)
+const transactionSignature = ref('')
 const { connected, walletAddress } = useSolanaWallet()
+const {
+  cluster,
+  programId,
+  fetchMarket,
+  placeBet,
+  explorerTransactionUrl
+} = usePredictionMarket()
 const {
   outcomes,
   primaryMarket,
@@ -18,11 +27,26 @@ const {
   streamState,
   refresh
 } = useMarketOdds(() => props.fixture)
+const onChainMarket = ref<Awaited<ReturnType<typeof fetchMarket>>>(null)
+const onChainLoading = ref(false)
 
 const home = computed(() => props.fixture.participant1IsHome ? props.fixture.participant1 : props.fixture.participant2)
 const away = computed(() => props.fixture.participant1IsHome ? props.fixture.participant2 : props.fixture.participant1)
 const stake = computed(() => Math.max(0, Number(amount.value) || 0))
-const selected = computed(() => outcomes.value.find(outcome => outcome.key === selectedKey.value))
+const displayOutcomes = computed<MarketOutcome[]>(() => {
+  if (
+    !onChainMarket.value ||
+    onChainMarket.value.status !== 'open' ||
+    onChainMarket.value.bettingClosesAt <= BigInt(Math.floor(Date.now() / 1000))
+  ) {
+    return outcomes.value.map(outcome => ({ ...outcome, price: null }))
+  }
+  return outcomes.value.map((outcome, index) => ({
+    ...outcome,
+    price: Number(onChainMarket.value!.odds[index]) / 10_000
+  }))
+})
+const selected = computed(() => displayOutcomes.value.find(outcome => outcome.key === selectedKey.value))
 const quote = computed(() => {
   const decimalOdds = selected.value?.price ?? 0
   if (decimalOdds <= 1 || !stake.value) return null
@@ -46,62 +70,61 @@ function openTrade(outcome: MarketOutcome) {
   tradeOpen.value = true
 }
 
+async function loadOnChainMarket() {
+  onChainLoading.value = true
+  betError.value = ''
+  try {
+    onChainMarket.value = await fetchMarket(props.fixture.fixtureId)
+  } catch (error: any) {
+    betError.value = error?.data?.statusMessage || error?.message || 'Could not read this on-chain market.'
+  } finally {
+    onChainLoading.value = false
+  }
+}
+
 function openWallet() {
   tradeOpen.value = false
   if (!import.meta.client) return
   document.querySelector<HTMLButtonElement>('.cup-wallet')?.click()
 }
 
-function placeDemoBet() {
+async function placeOnChainBet() {
   if (!quote.value || !selected.value || !connected.value || !import.meta.client) return
-
-  const balanceKey = `cupmarket-mock-usdc:${walletAddress.value}`
+  submitting.value = true
+  betError.value = ''
   const betsKey = `cupmarket-demo-bets:${walletAddress.value}`
-  let balanceRecord: { balance?: number; lastClaim?: string } = {}
-
   try {
-    balanceRecord = JSON.parse(localStorage.getItem(balanceKey) || '{}')
-  } catch {
-    balanceRecord = {}
-  }
-
-  const balance = Number(balanceRecord.balance) || 0
-  if (balance < stake.value) {
-    betError.value = `Insufficient mock USDC. Available balance: ${balance.toLocaleString()}`
-    return
-  }
-
-  let bets: Record<string, unknown>[] = []
-  try {
+    const outcome = selectedKey.value === 'home' ? 0 : selectedKey.value === 'draw' ? 1 : 2
+    const result = await placeBet(props.fixture.fixtureId, outcome, parseMockUsdc(amount.value))
+    transactionSignature.value = result.signature
+    let bets: Record<string, unknown>[] = []
     const saved = JSON.parse(localStorage.getItem(betsKey) || '[]')
     bets = Array.isArray(saved) ? saved : []
-  } catch {
-    bets = []
+    bets.unshift({
+      id: result.positionIdHex,
+      betAddress: result.betAddress,
+      signature: result.signature,
+      fixtureId: props.fixture.fixtureId,
+      competition: props.fixture.competition,
+      home: home.value,
+      away: away.value,
+      selection: selected.value.label,
+      selectionKey: selected.value.key,
+      odds: Number(result.expectedOdds) / 10_000,
+      stake: stake.value,
+      potentialPayout: Number(result.payout) / 1_000_000,
+      potentialProfit: Number(result.payout) / 1_000_000 - stake.value,
+      placedAt: new Date().toISOString(),
+      status: 'open'
+    })
+    localStorage.setItem(betsKey, JSON.stringify(bets))
+    submitted.value = true
+    await loadOnChainMarket()
+  } catch (error: any) {
+    betError.value = error?.data?.statusMessage || error?.message || 'The bet transaction failed.'
+  } finally {
+    submitting.value = false
   }
-
-  bets.unshift({
-    id: crypto.randomUUID(),
-    fixtureId: props.fixture.fixtureId,
-    competition: props.fixture.competition,
-    home: home.value,
-    away: away.value,
-    selection: selected.value.label,
-    selectionKey: selected.value.key,
-    odds: quote.value.decimalOdds,
-    stake: stake.value,
-    potentialPayout: quote.value.payout,
-    potentialProfit: quote.value.profit,
-    placedAt: new Date().toISOString(),
-    status: 'open'
-  })
-
-  localStorage.setItem(balanceKey, JSON.stringify({
-    balance: balance - stake.value,
-    lastClaim: balanceRecord.lastClaim || ''
-  }))
-  localStorage.setItem(betsKey, JSON.stringify(bets))
-  betError.value = ''
-  submitted.value = true
 }
 
 function formatKickoff(value: number) {
@@ -112,6 +135,8 @@ function formatKickoff(value: number) {
     minute: '2-digit'
   }).format(new Date(value))
 }
+
+onMounted(loadOnChainMarket)
 </script>
 
 <template>
@@ -131,15 +156,15 @@ function formatKickoff(value: number) {
     </div>
 
     <div class="market-source-row">
-      <span :class="{ live: streamState === 'live' }">
-        <i />{{ streamState === 'live' ? 'TXLINE STREAM LIVE' : oddsLive ? 'TXLINE SNAPSHOT' : status === 'pending' ? 'LOADING ODDS' : 'ODDS UNAVAILABLE' }}
+      <span :class="{ live: onChainMarket?.status === 'open' }">
+        <i />{{ onChainLoading ? 'READING SOLANA' : onChainMarket ? `ON-CHAIN ${onChainMarket.status.toUpperCase()}` : 'NOT PUBLISHED ON-CHAIN' }}
       </span>
-      <span>{{ primaryMarket?.market || '1X2 MATCH RESULT' }}</span>
+      <span>{{ primaryMarket?.market || '1X2 MATCH RESULT' }} · {{ cluster.toUpperCase() }}</span>
     </div>
 
     <div class="outcome-buttons">
       <button
-        v-for="outcome in outcomes"
+        v-for="outcome in displayOutcomes"
         :key="outcome.key"
         type="button"
         :disabled="!outcome.price || outcome.price <= 1"
@@ -191,8 +216,8 @@ function formatKickoff(value: number) {
             <button v-if="!connected" class="cup-primary trade-submit" type="button" @click="openWallet">
               Connect wallet <Icon name="lucide:wallet-cards" />
             </button>
-            <button v-else class="cup-primary trade-submit" type="button" :disabled="!quote || submitted" @click="placeDemoBet">
-              {{ submitted ? 'Demo bet placed' : 'Place demo bet' }} <Icon :name="submitted ? 'lucide:check' : 'lucide:arrow-right'" />
+            <button v-else class="cup-primary trade-submit" type="button" :disabled="!quote || submitted || submitting" @click="placeOnChainBet">
+              {{ submitted ? 'Bet confirmed' : submitting ? 'Simulating & submitting…' : 'Place on-chain bet' }} <Icon :name="submitted ? 'lucide:check' : submitting ? 'lucide:loader-circle' : 'lucide:arrow-right'" />
             </button>
 
             <div v-if="betError" class="trade-bet-error">
@@ -201,9 +226,13 @@ function formatKickoff(value: number) {
             </div>
             <div v-if="submitted" class="trade-preview-notice">
               <Icon name="lucide:circle-check-big" />
-              <span><strong>Bet recorded at {{ quote?.decimalOdds.toFixed(2) }} odds</strong>{{ stake.toFixed(2) }} mock USDC was deducted from your browser balance.</span>
+              <span>
+                <strong>Bet confirmed at {{ quote?.decimalOdds.toFixed(2) }} odds</strong>
+                {{ stake.toFixed(2) }} mock USDC was transferred to the pool.
+                <a :href="explorerTransactionUrl(transactionSignature)" target="_blank" rel="noopener">View transaction</a>
+              </span>
             </div>
-            <small class="trade-disclaimer">Odds update through the TxLINE SSE feed and may change until confirmation. This demo records browser-only bets; it does not transfer USDC or submit a Solana transaction.</small>
+            <small class="trade-disclaimer">Review: {{ stake.toFixed(2) }} mock USDC on {{ selected?.label || 'selected outcome' }} at locked on-chain odds; potential payout {{ quote?.payout.toFixed(2) || '—' }}; fee payer {{ walletAddress || 'connected wallet' }}; cluster {{ cluster }}; program {{ programId }}. The transaction is simulated before signing. TxLINE is reference data; the oracle-published account is authoritative.</small>
           </section>
         </div>
       </Transition>

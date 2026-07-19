@@ -80,7 +80,7 @@ useSeoMeta({
       <div class="amm-steps">
         <article><b>01</b><Icon name="lucide:radio" /><h3>TxLINE seeds the market</h3><p>Fixtures and consensus reference probabilities arrive through the server-side data feed.</p></article>
         <article><b>02</b><Icon name="lucide:waves" /><h3>The AMM quotes instantly</h3><p>A liquidity curve returns shares, price impact, and the new market probability before you trade.</p></article>
-        <article><b>03</b><Icon name="lucide:circle-dollar-sign" /><h3>Winning shares settle at $1</h3><p>One match, three outcomes. Correct shares redeem for one USDC after resolution.</p></article>
+        <article><b>03</b><Icon name="lucide:circle-dollar-sign" /><h3>Minimum bet is only $1</h3><p>Choose home, draw, or away and place a prediction from just 1 mock USDC.</p></article>
       </div>
     </section>
   </main>
