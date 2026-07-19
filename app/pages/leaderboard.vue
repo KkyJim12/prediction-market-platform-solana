@@ -57,7 +57,7 @@ useSeoMeta({
       <div>
         <span class="cup-kicker"><Icon name="lucide:trophy" /> {{ isTestMode ? 'TEST MODE RANKINGS' : 'WORLD CUP TRADER RANKINGS' }}</span>
         <h1>Make your call.<br>Climb the table.</h1>
-        <p>{{ isTestMode ? 'These rankings use only test_users and test_positions. Main Mode activity never appears here.' : 'Rankings track trading activity across PurpleX match markets. Switch metrics to compare total volume, realized PnL, and eligible base volume.' }}</p>
+        <p>{{ isTestMode ? 'These rankings use only test_users and test_positions. Main Mode activity never appears here.' : 'Rankings track trading activity across PurpleX match markets. Volume is stake multiplied by locked odds; base volume is the original stake.' }}</p>
       </div>
       <div class="leaderboard-season">
         <span>ACTIVE SEASON</span>
@@ -88,7 +88,7 @@ useSeoMeta({
             </button>
           </div>
         </div>
-        <p v-if="activeMetric === 'baseVolume'"><Icon name="lucide:info" /> Base volume is eligible stake before market multipliers or promotional boosts.</p>
+        <p v-if="activeMetric === 'baseVolume'"><Icon name="lucide:info" /> Base volume is the total input stake before odds, whether the position wins or loses.</p>
       </div>
 
       <section class="leaderboard-table-wrap">

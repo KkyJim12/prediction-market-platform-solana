@@ -61,7 +61,7 @@ BEGIN
     updated_at = now()
   FROM (
     SELECT
-      COALESCE(sum(stake_base_units), 0) AS volume,
+      COALESCE(sum(potential_payout_base_units), 0) AS volume,
       COALESCE(sum(stake_base_units), 0) AS base_volume,
       COALESCE(sum(
         CASE

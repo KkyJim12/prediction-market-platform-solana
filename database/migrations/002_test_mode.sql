@@ -69,14 +69,15 @@ RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
   UPDATE test_users SET
     volume_base_units = totals.volume,
-    base_volume_base_units = totals.volume,
+    base_volume_base_units = totals.base_volume,
     realized_pnl_base_units = totals.pnl,
     trades = totals.trades,
     wins = totals.wins,
     losses = totals.losses,
     updated_at = now()
   FROM (
-    SELECT COALESCE(sum(stake_base_units), 0) volume,
+    SELECT COALESCE(sum(potential_payout_base_units), 0) volume,
+      COALESCE(sum(stake_base_units), 0) base_volume,
       COALESCE(sum(CASE WHEN status = 'won' THEN COALESCE(amount_paid_base_units, potential_payout_base_units) - stake_base_units
         WHEN status = 'lost' THEN -stake_base_units ELSE 0 END), 0) pnl,
       count(*)::integer trades,

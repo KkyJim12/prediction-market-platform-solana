@@ -54,7 +54,7 @@ BEGIN
     updated_at = now()
   FROM (
     SELECT
-      COALESCE(sum(stake_base_units), 0) AS volume,
+      COALESCE(sum(potential_payout_base_units), 0) AS volume,
       COALESCE(sum(stake_base_units), 0) AS base_volume,
       COALESCE(sum(CASE
         WHEN status = 'won' THEN COALESCE(amount_paid_base_units, potential_payout_base_units) - stake_base_units
@@ -151,14 +151,15 @@ RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
   UPDATE test_users SET
     volume_base_units = totals.volume,
-    base_volume_base_units = totals.volume,
+    base_volume_base_units = totals.base_volume,
     realized_pnl_base_units = totals.pnl,
     trades = totals.trades,
     wins = totals.wins,
     losses = totals.losses,
     updated_at = now()
   FROM (
-    SELECT COALESCE(sum(stake_base_units), 0) volume,
+    SELECT COALESCE(sum(potential_payout_base_units), 0) volume,
+      COALESCE(sum(stake_base_units), 0) base_volume,
       COALESCE(sum(CASE WHEN status = 'won' THEN COALESCE(amount_paid_base_units, potential_payout_base_units) - stake_base_units
         WHEN status = 'lost' THEN -stake_base_units ELSE 0 END), 0) pnl,
       count(*)::integer trades,
@@ -185,6 +186,30 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'test_positions_stats_trigger') THEN
     CREATE TRIGGER test_positions_stats_trigger AFTER INSERT OR UPDATE OR DELETE ON test_positions
     FOR EACH ROW EXECUTE FUNCTION test_positions_refresh_stats();
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS app_schema_migrations (
+  version varchar(100) PRIMARY KEY,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+DO $$
+DECLARE
+  target_wallet varchar;
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM app_schema_migrations
+    WHERE version = '003_volume_uses_odds_adjusted_payout'
+  ) THEN
+    FOR target_wallet IN SELECT wallet_address FROM users LOOP
+      PERFORM refresh_user_stats(target_wallet);
+    END LOOP;
+    FOR target_wallet IN SELECT wallet_address FROM test_users LOOP
+      PERFORM refresh_test_user_stats(target_wallet);
+    END LOOP;
+    INSERT INTO app_schema_migrations (version)
+    VALUES ('003_volume_uses_odds_adjusted_payout')
+    ON CONFLICT (version) DO NOTHING;
   END IF;
 END $$;
 `

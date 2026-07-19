@@ -122,7 +122,7 @@ useSeoMeta({
           <span>VOLUME</span>
           <Icon name="lucide:chart-no-axes-combined" />
           <strong>{{ connected ? formatUsdc(stats.volume) : '—' }}</strong>
-          <small>USDC traded</small>
+          <small>Stake × locked odds</small>
         </div>
 
         <div class="portfolio-stat-block">
@@ -136,7 +136,7 @@ useSeoMeta({
           <span>BASE VOLUME</span>
           <Icon name="lucide:blocks" />
           <strong>{{ connected ? formatUsdc(stats.baseVolume) : '—' }}</strong>
-          <small>Eligible stake</small>
+          <small>Total input stake</small>
         </div>
 
         <div class="portfolio-stat-block">

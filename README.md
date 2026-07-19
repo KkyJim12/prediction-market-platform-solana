@@ -158,6 +158,7 @@ controlled deployment, apply the checked-in migration first:
 ```bash
 psql "$NUXT_DATABASE_URL" -f database/migrations/001_stats_and_positions.sql
 psql "$NUXT_DATABASE_URL" -f database/migrations/002_test_mode.sql
+psql "$NUXT_DATABASE_URL" -f database/migrations/003_volume_uses_odds_adjusted_payout.sql
 ```
 
 After a bet confirms, the server decodes its Solana `place_bet` instruction
