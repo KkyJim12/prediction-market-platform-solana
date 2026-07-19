@@ -5,10 +5,6 @@ const featuredFixtures = computed(() => fixtures.value.slice(0, 6))
 
 const nextFixture = computed(() => featuredFixtures.value[0])
 
-useSeoMeta({
-  title: 'CupMarket — World Cup prediction markets on Solana',
-  description: 'Trade World Cup and International Friendlies outcomes with free-tier data from TxODDS TxLINE.'
-})
 </script>
 
 <template>
