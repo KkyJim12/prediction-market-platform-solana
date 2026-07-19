@@ -138,6 +138,39 @@ Every faucet, bet, deposit, and withdrawal is simulated by the configured
 prediction-market RPC before the browser wallet is asked to sign. The connected
 wallet must be set to the same cluster shown in the transaction review.
 
+### Oracle odds worker
+
+The standalone worker polls the Nuxt server's normalized TxLINE feed every
+minute. It publishes a fixture once, updates an open market when any decimal
+odd moves by at least `0.02`, and refreshes the on-chain quote after ten minutes.
+It skips fixtures at or after kickoff; the program independently rejects bets
+when the on-chain clock reaches `betting_closes_at`.
+
+Keep the dedicated oracle keypair outside this repository. Configure its
+protected runtime path and start Nuxt before the worker:
+
+```dotenv
+ORACLE_KEYPAIR_PATH=C:\secure\devnet-oracle.json
+ORACLE_RPC_URL=https://api.devnet.solana.com
+ORACLE_APP_ORIGIN=http://127.0.0.1:3000
+ORACLE_POLL_MS=60000
+ORACLE_ODDS_THRESHOLD=0.02
+ORACLE_FORCE_UPDATE_MS=600000
+ORACLE_STATE_PATH=.data/oracle-state.json
+```
+
+Run one cycle for an operational check, then start the recurring worker:
+
+```bash
+npm run oracle:once
+npm run oracle:start
+```
+
+Each transaction is simulated before signing and submission. The worker refuses
+to start when the signer does not match the oracle stored in the Pool account.
+The ignored `.data/oracle-state.json` file preserves the ten-minute refresh
+window when a scheduler invokes `oracle:once` as a fresh process every minute.
+
 ## PostgreSQL portfolio index
 
 Portfolio and leaderboard data use two PostgreSQL tables:

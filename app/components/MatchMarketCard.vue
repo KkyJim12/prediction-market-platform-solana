@@ -15,7 +15,9 @@ const { connected, walletAddress } = useSolanaWallet()
 const {
   cluster,
   programId,
+  fetchPool,
   fetchMarket,
+  publishMarket,
   placeBet,
   explorerTransactionUrl
 } = usePredictionMarket()
@@ -29,7 +31,10 @@ const {
   refresh
 } = useMarketOdds(() => props.fixture)
 const onChainMarket = ref<Awaited<ReturnType<typeof fetchMarket>>>(null)
+const predictionPool = ref<Awaited<ReturnType<typeof fetchPool>>>(null)
 const onChainLoading = ref(false)
+const publishing = ref(false)
+const publishSignature = ref('')
 const amountInput = ref<HTMLInputElement>()
 
 const home = computed(() => props.fixture.participant1IsHome ? props.fixture.participant1 : props.fixture.participant2)
@@ -48,7 +53,8 @@ const marketOpen = computed(() =>
   Boolean(
     onChainMarket.value &&
     onChainMarket.value.status === 'open' &&
-    onChainMarket.value.bettingClosesAt > BigInt(Math.floor(Date.now() / 1000))
+    onChainMarket.value.bettingClosesAt > BigInt(Math.floor(Date.now() / 1000)) &&
+    props.fixture.startTime > Date.now()
   )
 )
 const displayOutcomes = computed<MarketOutcome[]>(() => {
@@ -59,6 +65,14 @@ const displayOutcomes = computed<MarketOutcome[]>(() => {
   }))
 })
 const selected = computed(() => displayOutcomes.value.find(outcome => outcome.key === selectedKey.value))
+const isOracleWallet = computed(() =>
+  Boolean(connected.value && predictionPool.value?.oracle === walletAddress.value)
+)
+const publishableOdds = computed<[bigint, bigint, bigint] | null>(() => {
+  const prices = outcomes.value.map(outcome => outcome.price)
+  if (prices.some(price => price === null || !Number.isFinite(price) || price! <= 1)) return null
+  return prices.map(price => BigInt(Math.round(price! * 10_000))) as [bigint, bigint, bigint]
+})
 const quote = computed(() => {
   const decimalOdds = selected.value?.price ?? 0
   if (decimalOdds <= 1 || !stakeBaseUnits.value) return null
@@ -89,11 +103,36 @@ async function loadOnChainMarket() {
   onChainLoading.value = true
   betError.value = ''
   try {
-    onChainMarket.value = await fetchMarket(props.fixture.fixtureId)
+    const [market, pool] = await Promise.all([
+      fetchMarket(props.fixture.fixtureId),
+      fetchPool()
+    ])
+    onChainMarket.value = market
+    predictionPool.value = pool
   } catch (error: any) {
     betError.value = error?.data?.statusMessage || error?.message || 'Could not read this on-chain market.'
   } finally {
     onChainLoading.value = false
+  }
+}
+
+async function publishReferenceOdds() {
+  if (!publishableOdds.value || !isOracleWallet.value) return
+  publishing.value = true
+  betError.value = ''
+  publishSignature.value = ''
+  try {
+    const result = await publishMarket(
+      props.fixture.fixtureId,
+      publishableOdds.value,
+      BigInt(Math.floor(props.fixture.startTime / 1000))
+    )
+    publishSignature.value = result.signature
+    await loadOnChainMarket()
+  } catch (error: any) {
+    betError.value = error?.data?.statusMessage || error?.message || 'Could not publish this market.'
+  } finally {
+    publishing.value = false
   }
 }
 
@@ -173,11 +212,26 @@ onMounted(loadOnChainMarket)
       <span>{{ primaryMarket?.market || '1X2 MATCH RESULT' }} · {{ marketOpen ? cluster.toUpperCase() : 'TXLINE REFERENCE' }}</span>
     </div>
 
+    <div v-if="!marketOpen && !onChainLoading" class="oracle-publish-row">
+      <template v-if="isOracleWallet">
+        <div>
+          <strong><Icon name="lucide:shield-check" /> ORACLE WALLET</strong>
+          <small>Publish {{ displayOutcomes.map(outcome => formatOdds(outcome.price)).join(' / ') }} · closes at kickoff</small>
+        </div>
+        <button type="button" :disabled="publishing || !publishableOdds" @click="publishReferenceOdds">
+          <Icon :name="publishing ? 'lucide:loader-circle' : 'lucide:send'" />
+          {{ publishing ? 'Publishing…' : 'Publish odds on-chain' }}
+        </button>
+      </template>
+      <span v-else><Icon name="lucide:lock-keyhole" /> Connect the configured oracle wallet to publish this market.</span>
+    </div>
+
     <div class="outcome-buttons">
       <button
         v-for="outcome in displayOutcomes"
         :key="outcome.key"
         type="button"
+        :class="{ reference: !marketOpen }"
         :disabled="!marketOpen || !outcome.price || outcome.price <= 1"
         @click="openTrade(outcome)"
       >
@@ -192,6 +246,16 @@ onMounted(loadOnChainMarket)
       <button v-if="oddsError" type="button" @click="refresh()"><Icon name="lucide:refresh-cw" /> Retry</button>
       <span v-else>{{ marketOpen ? 'Fixed-odds payout' : 'Reference odds · awaiting oracle publish' }}</span>
     </footer>
+
+    <a
+      v-if="publishSignature"
+      class="oracle-publish-success"
+      :href="explorerTransactionUrl(publishSignature)"
+      target="_blank"
+      rel="noopener"
+    >
+      <Icon name="lucide:circle-check-big" /> Market published · view transaction
+    </a>
 
     <Teleport to="body">
       <Transition name="modal-slide">

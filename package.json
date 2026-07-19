@@ -6,6 +6,8 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
+    "oracle:once": "node scripts/oracle-bot.mjs --once",
+    "oracle:start": "node scripts/oracle-bot.mjs",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },

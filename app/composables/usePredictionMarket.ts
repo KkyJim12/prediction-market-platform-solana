@@ -16,6 +16,7 @@ const CLAIM_FAUCET_DISCRIMINATOR = [80, 7, 251, 108, 55, 145, 135, 68]
 const INITIALIZE_LIQUIDITY_DISCRIMINATOR = [8, 245, 87, 39, 30, 245, 116, 193]
 const FUND_POOL_DISCRIMINATOR = [36, 57, 233, 176, 181, 20, 87, 159]
 const WITHDRAW_POOL_DISCRIMINATOR = [190, 43, 148, 248, 68, 5, 215, 136]
+const PUBLISH_MARKET_DISCRIMINATOR = [145, 24, 249, 5, 188, 66, 211, 38]
 const PLACE_BET_DISCRIMINATOR = [222, 62, 67, 220, 63, 166, 126, 33]
 
 export const MOCK_USDC_SCALE = 1_000_000n
@@ -89,6 +90,15 @@ function writeU64(value: bigint) {
   }
   const bytes = new Uint8Array(8)
   new DataView(bytes.buffer).setBigUint64(0, value, true)
+  return bytes
+}
+
+function writeI64(value: bigint) {
+  if (value < -9_223_372_036_854_775_808n || value > 9_223_372_036_854_775_807n) {
+    throw new Error('Value is outside the on-chain i64 range.')
+  }
+  const bytes = new Uint8Array(8)
+  new DataView(bytes.buffer).setBigInt64(0, value, true)
   return bytes
 }
 
@@ -387,6 +397,56 @@ export function usePredictionMarket() {
     return simulateAndSend([instruction])
   }
 
+  async function publishMarket(
+    externalId: string | number,
+    odds: [bigint, bigint, bigint],
+    bettingClosesAt: bigint
+  ) {
+    if (!walletAddress.value) throw new Error('Connect the oracle wallet before publishing.')
+    if (cluster !== 'devnet') {
+      throw new Error('Manual market publishing is restricted to devnet in this frontend.')
+    }
+    if (odds.filter(value => value > 0n).length < 2 ||
+      odds.some(value => value !== 0n && (value < ODDS_SCALE || value > 1_000_000n))) {
+      throw new Error('Odds must contain at least two outcomes between 1.0000 and 100.0000.')
+    }
+    const now = BigInt(Math.floor(Date.now() / 1000))
+    if (bettingClosesAt <= now || bettingClosesAt > now + 1_209_600n) {
+      throw new Error('Betting close time must be within the next 14 days.')
+    }
+
+    const signer = new PublicKey(walletAddress.value)
+    const pool = await fetchPool()
+    if (!pool) throw new Error('The prediction pool is not initialized on this network.')
+    if (pool.oracle !== signer.toBase58()) {
+      throw new Error(`Connect the configured oracle wallet: ${pool.oracle}`)
+    }
+    if (await fetchMarket(externalId)) {
+      throw new Error('This fixture has already been published on-chain.')
+    }
+
+    const matchId = await toMatchId(externalId)
+    const market = marketAddress(matchId)
+    const instruction = new TransactionInstruction({
+      programId,
+      keys: [
+        { pubkey: signer, isSigner: true, isWritable: true },
+        { pubkey: signer, isSigner: true, isWritable: false },
+        { pubkey: poolAddress, isSigner: false, isWritable: false },
+        { pubkey: market, isSigner: false, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }
+      ],
+      data: concatBytes(
+        new Uint8Array(PUBLISH_MARKET_DISCRIMINATOR),
+        matchId,
+        ...odds.map(writeU64),
+        writeI64(bettingClosesAt)
+      ) as any
+    })
+    const signature = await simulateAndSend([instruction])
+    return { signature, marketAddress: market.toBase58() }
+  }
+
   async function placeBet(externalId: string | number, outcome: number, stake: bigint) {
     if (outcome < 0 || outcome > 2) throw new Error('Invalid market outcome.')
     const user = new PublicKey(walletAddress.value)
@@ -529,6 +589,7 @@ export function usePredictionMarket() {
     fetchMarket,
     fetchWalletState,
     initializePool,
+    publishMarket,
     claimFaucet,
     placeBet,
     fundPool,

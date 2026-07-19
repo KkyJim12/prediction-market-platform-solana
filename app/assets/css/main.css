@@ -3903,8 +3903,79 @@ body:has(.cup-shell) {
 }
 
 .outcome-buttons button:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: .5;
+}
+
+.outcome-buttons button.reference:disabled {
+  opacity: 1;
+}
+
+.oracle-publish-row {
+  margin: 0 13px;
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--cup-lime) 40%, var(--cup-line));
+  background: var(--cup-lime-soft);
+  font: 500 8px 'DM Mono', monospace;
+}
+
+.oracle-publish-row > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.oracle-publish-row strong,
+.oracle-publish-row span,
+.oracle-publish-row button,
+.oracle-publish-success {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.oracle-publish-row small {
+  overflow: hidden;
+  color: var(--cup-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oracle-publish-row button {
+  flex: none;
+  padding: 8px 10px;
+  border: 1px solid var(--cup-lime);
+  border-radius: 3px;
+  color: #180f22;
+  background: var(--cup-lime);
+  font: 700 8px 'DM Mono', monospace;
+  cursor: pointer;
+}
+
+.oracle-publish-row button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.oracle-publish-row button:disabled svg {
+  animation: match-spin .8s linear infinite;
+}
+
+.oracle-publish-row svg,
+.oracle-publish-success svg {
+  width: 12px;
+  height: 12px;
+}
+
+.oracle-publish-success {
+  padding: 10px 15px;
+  border-top: 1px solid var(--cup-line);
+  color: var(--cup-lime);
+  font: 600 8px 'DM Mono', monospace;
 }
 
 .outcome-buttons span,
