@@ -125,6 +125,7 @@ onBeforeUnmount(() => {
         <NuxtLink class="nav-link" to="/portfolio">Portfolio</NuxtLink>
         <NuxtLink v-if="isTestMode" class="nav-link test-management-link" to="/management">Management</NuxtLink>
         <NuxtLink class="nav-link" to="/settings">Settings</NuxtLink>
+        <NuxtLink class="nav-link" to="/how-it-works">How it works</NuxtLink>
       </nav>
 
       <div class="header-actions">
@@ -212,6 +213,7 @@ onBeforeUnmount(() => {
         <NuxtLink to="/portfolio">Portfolio</NuxtLink>
         <NuxtLink v-if="isTestMode" to="/management">Management</NuxtLink>
         <NuxtLink to="/settings">Settings</NuxtLink>
+        <NuxtLink to="/how-it-works">How it works</NuxtLink>
       </nav>
     </Transition>
 
@@ -226,6 +228,7 @@ onBeforeUnmount(() => {
         <p>World Cup prediction markets powered by TxLINE free-tier data and an AMM on Solana.</p>
       </div>
       <div class="cup-footer-meta">
+        <NuxtLink to="/how-it-works">HOW IT WORKS</NuxtLink>
         <span><i class="network-dot" /> TXLINE DATA</span>
         <span>AMM PREVIEW</span>
         <span>NON-CUSTODIAL</span>

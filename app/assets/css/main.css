@@ -3391,7 +3391,7 @@ body:has(.cup-shell) {
 }
 
 .cup-nav {
-  gap: 38px;
+  gap: clamp(15px, 1.75vw, 30px);
 }
 
 .cup-nav .nav-link {
@@ -3415,6 +3415,15 @@ body:has(.cup-shell) {
 
 .cup-topbar .network-pill {
   color: var(--cup-muted);
+}
+
+.cup-footer-meta a {
+  color: var(--cup-muted);
+  text-decoration: none;
+}
+
+.cup-footer-meta a:hover {
+  color: var(--cup-ink);
 }
 
 .cup-topbar .network-dot,
