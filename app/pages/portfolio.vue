@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { connected, walletAddress } = useSolanaWallet()
+const { mode, isTestMode } = useAppMode()
 
 type Position = {
   id: string
@@ -50,7 +51,9 @@ async function loadPortfolio() {
 
   loading.value = true
   try {
-    const response = await $fetch<PortfolioResponse>(`/api/portfolio/${walletAddress.value}`)
+    const response = await $fetch<PortfolioResponse>(
+      `${isTestMode.value ? '/api/test/portfolio' : '/api/portfolio'}/${walletAddress.value}`
+    )
     positions.value = response.positions
     stats.value = response.stats
   } catch (error: any) {
@@ -60,7 +63,7 @@ async function loadPortfolio() {
   }
 }
 
-watch(walletAddress, loadPortfolio)
+watch([walletAddress, mode], loadPortfolio)
 onMounted(loadPortfolio)
 onActivated(loadPortfolio)
 
@@ -93,9 +96,9 @@ useSeoMeta({
   <main class="portfolio-page">
     <section class="portfolio-stats-hero">
       <div>
-        <span class="cup-kicker"><Icon name="lucide:chart-pie" /> TRADER DASHBOARD</span>
+        <span class="cup-kicker"><Icon name="lucide:chart-pie" /> {{ isTestMode ? 'TEST MODE DASHBOARD' : 'TRADER DASHBOARD' }}</span>
         <h1>Your portfolio.</h1>
-        <p>Track positions, settlement activity, and the same performance metrics used by the PurpleX leaderboard.</p>
+        <p>{{ isTestMode ? 'Track database-only demo positions and settlements, completely separated from Main Mode statistics.' : 'Track positions, settlement activity, and the same performance metrics used by the PurpleX leaderboard.' }}</p>
       </div>
 
       <button v-if="!connected" class="cup-primary" type="button" @click="openWallet">

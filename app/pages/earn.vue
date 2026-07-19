@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { connected, walletAddress } = useSolanaWallet()
+const { mode, isTestMode } = useAppMode()
 const {
   cluster,
   programId,
@@ -9,6 +10,7 @@ const {
   withdrawPool,
   explorerTransactionUrl
 } = usePredictionMarket()
+const testMarket = useTestPredictionMarket()
 
 const amount = ref('100')
 const action = ref<'deposit' | 'withdraw'>('deposit')
@@ -98,9 +100,9 @@ function setPercentage(percent: bigint) {
 async function refreshOnChainState() {
   errorMessage.value = ''
   try {
-    pool.value = await fetchPool()
+    pool.value = isTestMode.value ? await testMarket.fetchPool() : await fetchPool()
     if (walletAddress.value) {
-      const state = await fetchWalletState()
+      const state = isTestMode.value ? await testMarket.fetchWalletState() : await fetchWalletState()
       shares.value = state.shares
       balance.value = state.balance
     } else {
@@ -119,9 +121,11 @@ async function submitLiquidity() {
   try {
     await refreshOnChainState()
     if (errorMessage.value || !parsedAmount.value || amountError.value) return
-    transactionSignature.value = action.value === 'deposit'
-      ? await fundPool(parsedAmount.value)
-      : await withdrawPool(withdrawalShares.value)
+    transactionSignature.value = isTestMode.value
+      ? await testMarket.updateLiquidity(action.value, parsedAmount.value)
+      : action.value === 'deposit'
+        ? await fundPool(parsedAmount.value)
+        : await withdrawPool(withdrawalShares.value)
     await refreshOnChainState()
   } catch (error: any) {
     errorMessage.value = error?.data?.statusMessage || error?.message || 'The liquidity transaction failed.'
@@ -130,7 +134,7 @@ async function submitLiquidity() {
   }
 }
 
-watch(walletAddress, refreshOnChainState)
+watch([walletAddress, mode], refreshOnChainState)
 onMounted(refreshOnChainState)
 
 useSeoMeta({
@@ -143,9 +147,9 @@ useSeoMeta({
   <main class="earn-page">
     <section class="earn-hero">
       <div>
-        <span class="cup-kicker"><Icon name="lucide:landmark" /> COUNTERPARTY LIQUIDITY</span>
+        <span class="cup-kicker"><Icon name="lucide:landmark" /> {{ isTestMode ? 'DATABASE TEST LIQUIDITY' : 'COUNTERPARTY LIQUIDITY' }}</span>
         <h1>Earn from the other side.</h1>
-        <p>Supply mock USDC to back prediction-market trades. When traders lose, the pool gains. When traders win, the pool pays their profit and liquidity providers absorb the loss pro rata.</p>
+        <p>{{ isTestMode ? 'Exercise the complete liquidity flow against the isolated test pool in PostgreSQL. No deposit or withdrawal is sent on-chain.' : 'Supply mock USDC to back prediction-market trades. When traders lose, the pool gains. When traders win, the pool pays their profit and liquidity providers absorb the loss pro rata.' }}</p>
         <div class="earn-hero-tags">
           <span><Icon name="lucide:circle-dollar-sign" /> Mock USDC vault</span>
           <span><Icon name="lucide:scale" /> Pro-rata P&amp;L</span>
@@ -155,8 +159,8 @@ useSeoMeta({
 
       <div class="earn-model-badge">
         <span>POOL STATUS</span>
-        <strong><i /> {{ pool ? `LIVE ON ${cluster.toUpperCase()}` : 'NOT INITIALIZED' }}</strong>
-        <p>{{ pool ? 'Reading the single counterparty pool directly from Solana.' : `No pool account was found for ${programId} on ${cluster}.` }}</p>
+        <strong><i /> {{ pool ? (isTestMode ? 'LIVE IN TEST DATABASE' : `LIVE ON ${cluster.toUpperCase()}`) : 'NOT INITIALIZED' }}</strong>
+        <p>{{ pool ? (isTestMode ? 'Reading the isolated test_pool state from PostgreSQL.' : 'Reading the single counterparty pool directly from Solana.') : `No pool account was found for ${programId} on ${cluster}.` }}</p>
       </div>
     </section>
 
@@ -213,7 +217,7 @@ useSeoMeta({
               <span>MOCK USDC COUNTERPARTY POOL</span>
               <h2>Liquidity transaction</h2>
             </div>
-            <span class="preview-pill">{{ cluster.toUpperCase() }}</span>
+            <span class="preview-pill">{{ isTestMode ? 'TEST DATABASE' : cluster.toUpperCase() }}</span>
           </div>
 
           <div class="earn-action-tabs">
@@ -241,7 +245,7 @@ useSeoMeta({
               <strong>{{ formatMockUsdc(availableAmount, 6) }} mock USDC</strong>
             </div>
             <div>
-              <span>On-chain token amount</span>
+              <span>{{ isTestMode ? 'Database amount' : 'On-chain token amount' }}</span>
               <strong>{{ parsedAmount?.toString() || '—' }} base units</strong>
             </div>
             <div class="earn-quote-total">
@@ -261,7 +265,7 @@ useSeoMeta({
           </button>
           <button v-else class="earn-submit" type="button" :disabled="!canSubmit" @click="submitLiquidity">
             <Icon :name="pending ? 'lucide:loader-circle' : action === 'deposit' ? 'lucide:landmark' : 'lucide:arrow-down-to-line'" />
-            {{ pending ? 'Simulating & submitting…' : action === 'deposit' ? 'Deposit mock USDC' : 'Withdraw mock USDC' }}
+            {{ pending ? (isTestMode ? 'Saving…' : 'Simulating & submitting…') : action === 'deposit' ? 'Deposit mock USDC' : 'Withdraw mock USDC' }}
           </button>
 
           <div v-if="connected" class="earn-wallet-row">
@@ -270,8 +274,11 @@ useSeoMeta({
           </div>
 
           <div v-if="errorMessage" class="trade-bet-error"><Icon name="lucide:circle-alert" />{{ errorMessage }}</div>
-          <p v-if="transactionSignature"><a :href="explorerTransactionUrl(transactionSignature)" target="_blank" rel="noopener">View confirmed transaction</a></p>
-          <p class="earn-risk"><Icon name="lucide:triangle-alert" /> Review: {{ amount || '0' }} mock USDC {{ action }}; {{ action === 'deposit' ? depositShares : withdrawalShares }} LP shares {{ action === 'deposit' ? 'estimated to mint' : 'to burn' }}; fee payer {{ walletAddress || 'connected wallet' }}; cluster {{ cluster }}; program {{ programId }}. Transactions are simulated before signing. Liquidity provision is not yield-guaranteed and pool losses can reduce principal.</p>
+          <p v-if="transactionSignature">
+            <span v-if="isTestMode"><Icon name="lucide:circle-check" /> Saved as {{ transactionSignature }}</span>
+            <a v-else :href="explorerTransactionUrl(transactionSignature)" target="_blank" rel="noopener">View confirmed transaction</a>
+          </p>
+          <p class="earn-risk"><Icon name="lucide:triangle-alert" /> {{ isTestMode ? `Database simulation only: ${amount || '0'} mock USDC ${action}; no wallet signature and no Solana transaction.` : `Review: ${amount || '0'} mock USDC ${action}; fee payer ${walletAddress || 'connected wallet'}; cluster ${cluster}; program ${programId}. Transactions are simulated before signing.` }} Liquidity provision is not yield-guaranteed and pool losses can reduce principal.</p>
         </aside>
       </div>
     </section>

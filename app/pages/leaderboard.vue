@@ -10,6 +10,7 @@ type Trader = {
 }
 
 const activeMetric = ref<RankingMetric>('volume')
+const { mode, isTestMode } = useAppMode()
 const traders = ref<Trader[]>([])
 const leaderboardLoading = ref(false)
 const leaderboardError = ref('')
@@ -24,7 +25,7 @@ async function loadLeaderboard() {
   leaderboardLoading.value = true
   leaderboardError.value = ''
   try {
-    const response = await $fetch<{ traders: Trader[] }>('/api/leaderboard', {
+    const response = await $fetch<{ traders: Trader[] }>(isTestMode.value ? '/api/test/leaderboard' : '/api/leaderboard', {
       query: { metric: activeMetric.value }
     })
     traders.value = response.traders
@@ -36,7 +37,7 @@ async function loadLeaderboard() {
   }
 }
 
-watch(activeMetric, loadLeaderboard)
+watch([activeMetric, mode], loadLeaderboard)
 onMounted(loadLeaderboard)
 
 function formatUsdc(value: number, signed = false) {
@@ -54,14 +55,14 @@ useSeoMeta({
   <main class="leaderboard-page">
     <section class="leaderboard-hero">
       <div>
-        <span class="cup-kicker"><Icon name="lucide:trophy" /> WORLD CUP TRADER RANKINGS</span>
+        <span class="cup-kicker"><Icon name="lucide:trophy" /> {{ isTestMode ? 'TEST MODE RANKINGS' : 'WORLD CUP TRADER RANKINGS' }}</span>
         <h1>Make your call.<br>Climb the table.</h1>
-        <p>Rankings track trading activity across PurpleX match markets. Switch metrics to compare total volume, realized PnL, and eligible base volume.</p>
+        <p>{{ isTestMode ? 'These rankings use only test_users and test_positions. Main Mode activity never appears here.' : 'Rankings track trading activity across PurpleX match markets. Switch metrics to compare total volume, realized PnL, and eligible base volume.' }}</p>
       </div>
       <div class="leaderboard-season">
         <span>ACTIVE SEASON</span>
         <strong>WORLD CUP</strong>
-        <small>POSTGRESQL · SOLANA DEVNET</small>
+        <small>{{ isTestMode ? 'POSTGRESQL · TEST MODE' : 'POSTGRESQL · SOLANA DEVNET' }}</small>
       </div>
     </section>
 
@@ -122,7 +123,7 @@ useSeoMeta({
         </div>
       </section>
 
-      <p class="leaderboard-disclaimer"><Icon name="lucide:database" /> Rankings use PostgreSQL aggregates derived from confirmed Solana position transactions.</p>
+      <p class="leaderboard-disclaimer"><Icon name="lucide:database" /> {{ isTestMode ? 'Rankings use isolated test_* tables and contain no on-chain activity.' : 'Rankings use PostgreSQL aggregates derived from confirmed Solana position transactions.' }}</p>
     </section>
   </main>
 </template>

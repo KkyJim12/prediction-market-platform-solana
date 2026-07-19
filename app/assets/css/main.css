@@ -203,6 +203,119 @@ a {
   align-items: center;
 }
 
+.app-mode-control {
+  position: relative;
+}
+
+.app-mode-trigger {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: 800 10px/1 inherit;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.app-mode-trigger svg {
+  width: 14px;
+  transition: transform .18s ease;
+}
+
+.app-mode-trigger svg.open {
+  transform: rotate(180deg);
+}
+
+.app-mode-status {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgb(34 197 94 / 12%);
+}
+
+.app-mode-status.test {
+  background: #c084fc;
+  box-shadow: 0 0 0 4px rgb(192 132 252 / 14%);
+}
+
+.app-mode-menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 9px);
+  right: 0;
+  width: 210px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.app-mode-menu > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-mode-menu > button:hover,
+.app-mode-menu > button[aria-checked='true'] {
+  background: var(--surface-2);
+}
+
+.app-mode-menu > button > span {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  gap: 3px 9px;
+  align-items: center;
+}
+
+.app-mode-menu .app-mode-status {
+  grid-row: 1 / 3;
+}
+
+.app-mode-menu strong {
+  font-size: 10px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.app-mode-menu small {
+  color: var(--muted);
+  font-size: 8px;
+  letter-spacing: .02em;
+}
+
+.app-mode-menu > button > svg {
+  width: 16px;
+  color: var(--accent);
+}
+
+.network-pill.test .network-dot {
+  background: #c084fc;
+  box-shadow: 0 0 0 4px rgb(192 132 252 / 14%);
+}
+
+.test-management-link {
+  color: var(--accent) !important;
+}
+
 .network-pill {
   display: flex;
   gap: 8px;
@@ -4469,6 +4582,17 @@ body:has(.cup-shell) {
 @media (max-width: 760px) {
   .cup-topbar {
     padding: 0 16px;
+  }
+
+  .app-mode-trigger {
+    width: 42px;
+    padding: 0;
+    justify-content: center;
+    font-size: 0;
+  }
+
+  .app-mode-trigger svg {
+    display: none;
   }
 
   .cup-topbar .cup-brand-logo {

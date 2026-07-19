@@ -9,6 +9,8 @@ const {
   status,
   refresh
 } = useTxOdds()
+const { isTestMode, mode } = useAppMode()
+const { markets: testMarkets, loadingMarkets, marketsError, loadMarkets } = useTestPredictionMarket()
 
 const search = ref('')
 const stage = ref<'all' | 'live' | 'upcoming'>('all')
@@ -73,6 +75,22 @@ const visibleFixtures = computed(() => {
   })
 })
 
+const visibleTestMarkets = computed(() => {
+  const term = search.value.trim().toLocaleLowerCase()
+  return testMarkets.value.filter(market => !term ||
+    market.home.toLocaleLowerCase().includes(term) ||
+    market.away.toLocaleLowerCase().includes(term) ||
+    market.competition.toLocaleLowerCase().includes(term)
+  )
+})
+
+watch(mode, () => {
+  if (isTestMode.value) loadMarkets()
+})
+onMounted(() => {
+  if (isTestMode.value) loadMarkets()
+})
+
 useSeoMeta({
   title: 'World Cup free-tier markets — CupMarket',
   description: 'Browse World Cup and International Friendlies markets from the TxODDS TxLINE free tier.'
@@ -81,6 +99,41 @@ useSeoMeta({
 
 <template>
   <main class="markets-page">
+    <template v-if="isTestMode">
+      <section class="markets-hero">
+        <div>
+          <span class="cup-kicker"><span class="live-pulse" /> DATABASE TEST MODE</span>
+          <h1>Demo markets.</h1>
+          <p>Test the complete betting and settlement flow in PostgreSQL. No action on this page signs or sends a Solana transaction.</p>
+        </div>
+        <div class="market-feed-stats">
+          <div><span>TEST MARKETS</span><strong>{{ testMarkets.length }}</strong></div>
+          <div><span>EXECUTION</span><strong>DATABASE</strong></div>
+          <div><span>ON-CHAIN TX</span><strong>NONE</strong></div>
+        </div>
+      </section>
+      <section class="markets-content">
+        <div class="market-toolbar">
+          <label class="cup-search"><Icon name="lucide:search" /><input v-model="search" type="search" placeholder="Search a test market" aria-label="Search test markets"></label>
+          <NuxtLink class="market-refresh" to="/management"><Icon name="lucide:sliders-horizontal" /> Manage markets</NuxtLink>
+          <button class="market-refresh" type="button" :disabled="loadingMarkets" @click="loadMarkets()"><Icon name="lucide:refresh-cw" /> Refresh</button>
+        </div>
+        <div class="market-feed-line">
+          <span><i class="live" /> PostgreSQL simulation active</span>
+          <span>{{ visibleTestMarkets.length }} results</span>
+        </div>
+        <div v-if="visibleTestMarkets.length" class="amm-market-grid market-directory">
+          <TestMarketCard v-for="market in visibleTestMarkets" :key="market.id" :market="market" @placed="loadMarkets" />
+        </div>
+        <section v-else class="cup-feed-empty">
+          <Icon :name="loadingMarkets ? 'lucide:loader-circle' : 'lucide:database'" />
+          <h3>{{ loadingMarkets ? 'Loading test markets…' : 'No test markets yet' }}</h3>
+          <p>{{ marketsError || 'Create the first market, set its odds, and resolve it from the management page.' }}</p>
+          <NuxtLink to="/management">Create a test market</NuxtLink>
+        </section>
+      </section>
+    </template>
+    <template v-else>
     <section class="markets-hero">
       <div>
         <span class="cup-kicker"><span class="live-pulse" /> TXLINE WORLD CUP FREE TIER</span>
@@ -186,5 +239,6 @@ useSeoMeta({
         <button v-if="search || stage !== 'all' || competition !== 'all'" type="button" @click="search = ''; stage = 'all'; competition = 'all'">Clear filters</button>
       </section>
     </section>
+    </template>
   </main>
 </template>

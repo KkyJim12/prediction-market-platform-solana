@@ -4,8 +4,11 @@ const route = useRoute()
 const walletOpen = ref(false)
 const walletMenuOpen = ref(false)
 const walletControl = ref<HTMLElement>()
+const modeControl = ref<HTMLElement>()
+const modeMenuOpen = ref(false)
 const mobileNavOpen = ref(false)
 const walletMessage = ref('')
+const { mode, isTestMode, setMode, restoreMode } = useAppMode()
 const {
   walletName,
   walletAddress,
@@ -19,6 +22,7 @@ const {
 watch(() => route.fullPath, () => {
   mobileNavOpen.value = false
   walletMenuOpen.value = false
+  modeMenuOpen.value = false
 })
 
 function toggleTheme() {
@@ -51,15 +55,25 @@ async function logoutWallet() {
 
 function closeWalletMenu(event: MouseEvent) {
   if (!walletControl.value?.contains(event.target as Node)) walletMenuOpen.value = false
+  if (!modeControl.value?.contains(event.target as Node)) modeMenuOpen.value = false
 }
 
 function closeWalletMenuOnEscape(event: KeyboardEvent) {
-  if (event.key === 'Escape') walletMenuOpen.value = false
+  if (event.key === 'Escape') {
+    walletMenuOpen.value = false
+    modeMenuOpen.value = false
+  }
+}
+
+function chooseMode(nextMode: AppMode) {
+  setMode(nextMode)
+  modeMenuOpen.value = false
 }
 
 onMounted(async () => {
   document.addEventListener('click', closeWalletMenu)
   document.addEventListener('keydown', closeWalletMenuOnEscape)
+  restoreMode()
   await restore()
 })
 
@@ -84,11 +98,39 @@ onBeforeUnmount(() => {
         <NuxtLink class="nav-link" to="/leaderboard">Leaderboard</NuxtLink>
         <NuxtLink class="nav-link" to="/faucet">Faucet</NuxtLink>
         <NuxtLink class="nav-link" to="/portfolio">Portfolio</NuxtLink>
+        <NuxtLink v-if="isTestMode" class="nav-link test-management-link" to="/management">Management</NuxtLink>
         <NuxtLink class="nav-link" to="/settings">Settings</NuxtLink>
       </nav>
 
       <div class="header-actions">
-        <div class="network-pill"><span class="network-dot" /><span>SOLANA DEVNET</span></div>
+        <div ref="modeControl" class="app-mode-control">
+          <button
+            class="app-mode-trigger"
+            type="button"
+            aria-haspopup="menu"
+            :aria-expanded="modeMenuOpen"
+            @click="modeMenuOpen = !modeMenuOpen"
+          >
+            <span class="app-mode-status" :class="{ test: isTestMode }" />
+            <span>{{ isTestMode ? 'Test Mode' : 'Main' }}</span>
+            <Icon name="lucide:chevron-down" :class="{ open: modeMenuOpen }" />
+          </button>
+          <Transition name="dropdown-pop">
+            <div v-if="modeMenuOpen" class="app-mode-menu" role="menu">
+              <button type="button" role="menuitemradio" :aria-checked="mode === 'main'" @click="chooseMode('main')">
+                <span><i class="app-mode-status" /><strong>Main</strong><small>Solana Devnet</small></span>
+                <Icon v-if="mode === 'main'" name="lucide:check" />
+              </button>
+              <button type="button" role="menuitemradio" :aria-checked="mode === 'test'" @click="chooseMode('test')">
+                <span><i class="app-mode-status test" /><strong>Test Mode</strong><small>Database simulation</small></span>
+                <Icon v-if="mode === 'test'" name="lucide:check" />
+              </button>
+            </div>
+          </Transition>
+        </div>
+        <div class="network-pill" :class="{ test: isTestMode }">
+          <span class="network-dot" /><span>{{ isTestMode ? 'DATABASE TEST' : 'SOLANA DEVNET' }}</span>
+        </div>
         <button class="icon-button" type="button" :title="colorMode.value === 'dark' ? 'Use light mode' : 'Use dark mode'" @click="toggleTheme">
           <Icon :name="colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'" />
         </button>
@@ -131,6 +173,7 @@ onBeforeUnmount(() => {
         <NuxtLink to="/leaderboard">Leaderboard</NuxtLink>
         <NuxtLink to="/faucet">Faucet</NuxtLink>
         <NuxtLink to="/portfolio">Portfolio</NuxtLink>
+        <NuxtLink v-if="isTestMode" to="/management">Management</NuxtLink>
         <NuxtLink to="/settings">Settings</NuxtLink>
       </nav>
     </Transition>
@@ -158,7 +201,7 @@ onBeforeUnmount(() => {
           <button class="modal-close" type="button" title="Close" @click="walletOpen = false"><Icon name="lucide:x" /></button>
           <div class="modal-kicker"><Icon name="lucide:shield-check" /> SOLANA WALLET</div>
           <h2 id="wallet-title">Connect to trade</h2>
-          <p>Choose a wallet to preview and, when market contracts are enabled, submit trades on-chain.</p>
+          <p>{{ isTestMode ? 'Choose a wallet as your demo identity. Test Mode never requests a signature or sends an on-chain transaction.' : 'Choose a wallet to preview and submit trades on-chain.' }}</p>
           <div class="wallet-options">
             <button type="button" data-testid="connect-phantom" @click="connectWallet('Phantom')">
               <span class="phantom-logo">P</span><span><strong>Phantom</strong><small>Browser extension</small></span><Icon name="lucide:chevron-right" />

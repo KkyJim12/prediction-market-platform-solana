@@ -10,6 +10,7 @@ const {
 const activationComplete = ref(false)
 const showTokenActivation = ref(false)
 const { walletAddress, connected } = useSolanaWallet()
+const { isTestMode } = useAppMode()
 const {
   cluster,
   programId,
@@ -138,6 +139,17 @@ useSeoMeta({
     </section>
 
     <section class="settings-content">
+      <section v-if="isTestMode" class="settings-connected-card">
+        <div class="settings-connected-icon"><Icon name="lucide:database" /></div>
+        <div>
+          <span>TEST MODE</span>
+          <h3>All transaction controls are disabled</h3>
+          <p>Create markets, set odds, and publish results in the PostgreSQL-backed management workspace. No Test Mode action requests a message or transaction signature.</p>
+        </div>
+        <div class="settings-connected-actions"><NuxtLink to="/management">Open management</NuxtLink></div>
+      </section>
+
+      <template v-else>
       <div class="settings-section-heading">
         <div>
           <span>DATA PROVIDER</span>
@@ -266,6 +278,7 @@ useSeoMeta({
           <small>Simulation runs before your wallet is asked to sign.</small>
         </div>
       </section>
+      </template>
     </section>
   </main>
 </template>

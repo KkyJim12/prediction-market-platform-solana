@@ -3,6 +3,21 @@
 A World Cup AMM prediction-market interface on Solana, powered by Nuxt and
 TxODDS TxLINE free-tier match and reference-odds data.
 
+## Main and Test Mode
+
+The menu-bar switch persists the selected mode in the browser:
+
+- **Main** uses the deployed Solana devnet program and the `users` /
+  `positions` PostgreSQL index.
+- **Test** never builds, signs, or sends a Solana transaction. Faucet balances,
+  bets, liquidity, LP shares, payouts, portfolio stats, and leaderboard stats
+  are simulated transactionally in the isolated `test_*` PostgreSQL tables.
+
+In Test Mode, `/management` lets any connected wallet address create a demo
+market, set its three decimal odds, and resolve or void it. The public key is
+used only as the demo account identifier; Test Mode never requests a wallet
+signature.
+
 ## Setup
 
 Make sure to install dependencies:
@@ -142,6 +157,7 @@ controlled deployment, apply the checked-in migration first:
 
 ```bash
 psql "$NUXT_DATABASE_URL" -f database/migrations/001_stats_and_positions.sql
+psql "$NUXT_DATABASE_URL" -f database/migrations/002_test_mode.sql
 ```
 
 After a bet confirms, the server decodes its Solana `place_bet` instruction
