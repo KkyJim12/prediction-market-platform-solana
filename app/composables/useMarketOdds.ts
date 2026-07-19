@@ -75,8 +75,12 @@ export function useMarketOdds(fixture: MaybeRefOrGetter<LiveFixture>) {
   const primaryMarket = computed(() => {
     const available = markets.value
     const threeWay = available.filter(market => market.selections.length >= 3)
-    return threeWay.find(market => /1x2|match odds|full.?time result|moneyline/i.test(market.market))
-      ?? threeWay.find(market => !market.period || /full|match|game|regular/i.test(market.period))
+    const fullMatch = threeWay.filter(market =>
+      !market.period || /full|match|game|regular/i.test(market.period)
+    )
+    return fullMatch.find(market => /1x2|match odds|full.?time result|moneyline/i.test(market.market))
+      ?? fullMatch[0]
+      ?? threeWay.find(market => /1x2|match odds|full.?time result|moneyline/i.test(market.market))
       ?? threeWay[0]
       ?? available.find(market => market.selections.length >= 2)
   })

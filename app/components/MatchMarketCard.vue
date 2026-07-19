@@ -44,14 +44,15 @@ const stakeBaseUnits = computed<bigint | null>(() => {
     return null
   }
 })
+const marketOpen = computed(() =>
+  Boolean(
+    onChainMarket.value &&
+    onChainMarket.value.status === 'open' &&
+    onChainMarket.value.bettingClosesAt > BigInt(Math.floor(Date.now() / 1000))
+  )
+)
 const displayOutcomes = computed<MarketOutcome[]>(() => {
-  if (
-    !onChainMarket.value ||
-    onChainMarket.value.status !== 'open' ||
-    onChainMarket.value.bettingClosesAt <= BigInt(Math.floor(Date.now() / 1000))
-  ) {
-    return outcomes.value.map(outcome => ({ ...outcome, price: null }))
-  }
+  if (!marketOpen.value) return outcomes.value
   return outcomes.value.map((outcome, index) => ({
     ...outcome,
     price: Number(onChainMarket.value!.odds[index]) / 10_000
@@ -74,7 +75,7 @@ function formatOdds(value: number | null) {
 }
 
 async function openTrade(outcome: MarketOutcome) {
-  if (!outcome.price || outcome.price <= 1) return
+  if (!marketOpen.value || !outcome.price || outcome.price <= 1) return
   selectedKey.value = outcome.key
   submitted.value = false
   betError.value = ''
@@ -169,7 +170,7 @@ onMounted(loadOnChainMarket)
       <span :class="{ live: onChainMarket?.status === 'open' }">
         <i />{{ onChainLoading ? 'READING SOLANA' : onChainMarket ? `ON-CHAIN ${onChainMarket.status.toUpperCase()}` : 'NOT PUBLISHED ON-CHAIN' }}
       </span>
-      <span>{{ primaryMarket?.market || '1X2 MATCH RESULT' }} · {{ cluster.toUpperCase() }}</span>
+      <span>{{ primaryMarket?.market || '1X2 MATCH RESULT' }} · {{ marketOpen ? cluster.toUpperCase() : 'TXLINE REFERENCE' }}</span>
     </div>
 
     <div class="outcome-buttons">
@@ -177,7 +178,7 @@ onMounted(loadOnChainMarket)
         v-for="outcome in displayOutcomes"
         :key="outcome.key"
         type="button"
-        :disabled="!outcome.price || outcome.price <= 1"
+        :disabled="!marketOpen || !outcome.price || outcome.price <= 1"
         @click="openTrade(outcome)"
       >
         <span>{{ outcome.shortLabel }}</span>
@@ -189,7 +190,7 @@ onMounted(loadOnChainMarket)
     <footer>
       <span><Icon name="lucide:radio-tower" /> {{ streamState === 'live' ? 'Streaming odds' : 'Latest StablePrice quote' }}</span>
       <button v-if="oddsError" type="button" @click="refresh()"><Icon name="lucide:refresh-cw" /> Retry</button>
-      <span v-else>Fixed-odds payout</span>
+      <span v-else>{{ marketOpen ? 'Fixed-odds payout' : 'Reference odds · awaiting oracle publish' }}</span>
     </footer>
 
     <Teleport to="body">
