@@ -59,7 +59,6 @@ watch([walletAddress, mode], loadWalletBalance)
 onMounted(loadWalletBalance)
 
 useSeoMeta({
-  title: 'Mock USDC Faucet — CupMarket',
   description: 'Claim on-chain mock USDC from the CupMarket Solana program.'
 })
 </script>

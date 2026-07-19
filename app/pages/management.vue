@@ -88,7 +88,6 @@ onMounted(() => {
 })
 
 useSeoMeta({
-  title: 'Test Market Management — PurpleX',
   description: 'Create, price, and resolve PostgreSQL-backed hackathon demo markets.'
 })
 </script>

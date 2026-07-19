@@ -92,7 +92,6 @@ onMounted(() => {
 })
 
 useSeoMeta({
-  title: 'World Cup free-tier markets — CupMarket',
   description: 'Browse World Cup and International Friendlies markets from the TxODDS TxLINE free tier.'
 })
 </script>

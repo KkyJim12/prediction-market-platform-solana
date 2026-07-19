@@ -453,6 +453,18 @@ a {
   cursor: pointer;
 }
 
+.wallet-button-icon {
+  width: 18px !important;
+  height: 18px !important;
+  flex: 0 0 18px;
+  display: block;
+  font-size: 18px;
+}
+
+.wallet-button-label {
+  white-space: nowrap;
+}
+
 .wallet-control {
   position: relative;
 }
@@ -2362,6 +2374,57 @@ main {
   gap: 9px;
 }
 
+.mode-modal .modal-kicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.mode-modal-options {
+  display: grid;
+  gap: 9px;
+  margin-top: 24px;
+}
+
+.mode-modal-options > button {
+  width: 100%;
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  color: var(--text);
+  background: var(--surface-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mode-modal-options > button[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: var(--accent-soft);
+}
+
+.mode-modal-options > button > span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.mode-modal-options strong {
+  font-size: 12px;
+}
+
+.mode-modal-options small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .wallet-options {
   display: grid;
   gap: 8px;
@@ -2538,9 +2601,10 @@ main {
     width: 40px;
     padding: 0;
     justify-content: center;
-    font-size: 0;
+    font-size: 12px;
   }
 
+  .wallet-button-label,
   .wallet-button .wallet-chevron {
     display: none;
   }
@@ -4050,6 +4114,34 @@ body:has(.cup-shell) {
   font: 600 25px 'DM Mono', monospace;
 }
 
+.trade-match-details {
+  margin: -2px 0 20px;
+  border-top: 1px solid var(--cup-line);
+}
+
+.trade-match-details > div {
+  min-height: 34px;
+  padding: 7px 0;
+  display: grid;
+  grid-template-columns: minmax(90px, .35fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 15px;
+  border-bottom: 1px solid var(--cup-line);
+}
+
+.trade-match-details span {
+  color: var(--cup-muted);
+  font-size: 9px;
+}
+
+.trade-match-details strong {
+  overflow: hidden;
+  color: var(--cup-ink);
+  font: 500 9px/1.45 'DM Mono', monospace;
+  text-align: right;
+  text-overflow: ellipsis;
+}
+
 .trade-amount {
   display: grid;
   gap: 8px;
@@ -4692,7 +4784,16 @@ body:has(.cup-shell) {
   .cup-wallet {
     width: 40px;
     padding: 0;
-    font-size: 0;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  .wallet-button-label {
+    display: none;
+  }
+
+  .mode-modal {
+    padding: 32px 20px 22px;
   }
 
   .cup-mobile-nav {

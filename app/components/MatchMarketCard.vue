@@ -30,9 +30,11 @@ const {
 } = useMarketOdds(() => props.fixture)
 const onChainMarket = ref<Awaited<ReturnType<typeof fetchMarket>>>(null)
 const onChainLoading = ref(false)
+const amountInput = ref<HTMLInputElement>()
 
 const home = computed(() => props.fixture.participant1IsHome ? props.fixture.participant1 : props.fixture.participant2)
 const away = computed(() => props.fixture.participant1IsHome ? props.fixture.participant2 : props.fixture.participant1)
+const tradeTitleId = computed(() => `trade-title-${props.fixture.fixtureId}`)
 const stake = computed(() => Math.max(0, Number(amount.value) || 0))
 const displayOutcomes = computed<MarketOutcome[]>(() => {
   if (
@@ -63,13 +65,15 @@ function formatOdds(value: number | null) {
   return value && value > 1 ? value.toFixed(2) : '—'
 }
 
-function openTrade(outcome: MarketOutcome) {
+async function openTrade(outcome: MarketOutcome) {
   if (!outcome.price || outcome.price <= 1) return
   selectedKey.value = outcome.key
   submitted.value = false
   betError.value = ''
   indexError.value = ''
   tradeOpen.value = true
+  await nextTick()
+  amountInput.value?.focus()
 }
 
 async function loadOnChainMarket() {
@@ -182,11 +186,11 @@ onMounted(loadOnChainMarket)
 
     <Teleport to="body">
       <Transition name="modal-slide">
-        <div v-if="tradeOpen" class="modal-backdrop trade-backdrop" @click.self="tradeOpen = false">
-          <section class="trade-ticket" role="dialog" aria-modal="true" aria-labelledby="trade-title">
+        <div v-if="tradeOpen" class="modal-backdrop trade-backdrop" @click.self="tradeOpen = false" @keydown.esc="tradeOpen = false">
+          <section class="trade-ticket" role="dialog" aria-modal="true" :aria-labelledby="tradeTitleId">
             <button class="modal-close" type="button" title="Close" @click="tradeOpen = false"><Icon name="lucide:x" /></button>
             <div class="trade-ticket-label">FIXED-ODDS BET · FIXTURE {{ fixture.fixtureId }}</div>
-            <h2 id="trade-title">{{ home }} vs {{ away }}</h2>
+            <h2 :id="tradeTitleId">{{ home }} vs {{ away }}</h2>
             <p>Back <strong>{{ selected?.label }}</strong> to win</p>
 
             <div class="trade-side">
@@ -195,9 +199,16 @@ onMounted(loadOnChainMarket)
               <small>{{ selected?.probability?.toFixed(1) ?? '—' }}% implied probability</small>
             </div>
 
+            <div class="trade-match-details">
+              <div><span>Competition</span><strong>{{ fixture.competition }}</strong></div>
+              <div><span>Match</span><strong>{{ home }} vs {{ away }}</strong></div>
+              <div><span>Kickoff</span><strong>{{ formatKickoff(fixture.startTime) }}</strong></div>
+              <div><span>Market</span><strong>{{ primaryMarket?.market || '1X2 match result' }}</strong></div>
+            </div>
+
             <label class="trade-amount">
-              <span>STAKE</span>
-              <div><input v-model="amount" type="number" min="0" step="any" inputmode="decimal" aria-label="Bet amount"><strong>mock USDC</strong></div>
+              <span>BET AMOUNT</span>
+              <div><input ref="amountInput" v-model="amount" type="number" min="0" step="any" inputmode="decimal" aria-label="Bet amount"><strong>mock USDC</strong></div>
             </label>
             <div class="quick-amounts cup-quick-amounts">
               <button v-for="value in ['10', '25', '100', '500']" :key="value" type="button" @click="amount = value">{{ value }}</button>

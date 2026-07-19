@@ -87,7 +87,6 @@ function formatUsdc(value: number, signed = false) {
 }
 
 useSeoMeta({
-  title: 'Portfolio — PurpleX',
   description: 'Track your match-market positions, volume, profit and loss, and leaderboard performance.'
 })
 </script>

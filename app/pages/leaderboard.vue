@@ -46,7 +46,6 @@ function formatUsdc(value: number, signed = false) {
 }
 
 useSeoMeta({
-  title: 'Leaderboard — PurpleX',
   description: 'Rank PurpleX traders by volume, profit and loss, and base volume.'
 })
 </script>

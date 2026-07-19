@@ -114,7 +114,6 @@ watch(walletAddress, (address, previous) => {
 onMounted(refreshPool)
 
 useSeoMeta({
-  title: 'Settings — CupMarket',
   description: 'Configure Solana and activate the TxODDS TxLINE World Cup data feed.'
 })
 </script>

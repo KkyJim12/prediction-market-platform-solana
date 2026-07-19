@@ -6,8 +6,11 @@ const walletMenuOpen = ref(false)
 const walletControl = ref<HTMLElement>()
 const modeControl = ref<HTMLElement>()
 const modeMenuOpen = ref(false)
+const modeModalOpen = ref(false)
+const isMobileViewport = ref(false)
 const mobileNavOpen = ref(false)
 const walletMessage = ref('')
+let mobileModeMediaQuery: MediaQueryList | undefined
 const { mode, isTestMode, setMode, restoreMode } = useAppMode()
 const {
   walletName,
@@ -23,6 +26,7 @@ watch(() => route.fullPath, () => {
   mobileNavOpen.value = false
   walletMenuOpen.value = false
   modeMenuOpen.value = false
+  modeModalOpen.value = false
 })
 
 function toggleTheme() {
@@ -62,15 +66,35 @@ function closeWalletMenuOnEscape(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     walletMenuOpen.value = false
     modeMenuOpen.value = false
+    modeModalOpen.value = false
   }
 }
 
 function chooseMode(nextMode: AppMode) {
   setMode(nextMode)
   modeMenuOpen.value = false
+  modeModalOpen.value = false
+}
+
+function toggleModePicker() {
+  if (isMobileViewport.value) {
+    modeMenuOpen.value = false
+    modeModalOpen.value = true
+    return
+  }
+  modeMenuOpen.value = !modeMenuOpen.value
+}
+
+function syncMobileViewport(event?: MediaQueryListEvent) {
+  isMobileViewport.value = event?.matches ?? mobileModeMediaQuery?.matches ?? false
+  if (isMobileViewport.value) modeMenuOpen.value = false
+  else modeModalOpen.value = false
 }
 
 onMounted(async () => {
+  mobileModeMediaQuery = window.matchMedia('(max-width: 760px)')
+  syncMobileViewport()
+  mobileModeMediaQuery.addEventListener('change', syncMobileViewport)
   document.addEventListener('click', closeWalletMenu)
   document.addEventListener('keydown', closeWalletMenuOnEscape)
   restoreMode()
@@ -78,6 +102,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  mobileModeMediaQuery?.removeEventListener('change', syncMobileViewport)
   document.removeEventListener('click', closeWalletMenu)
   document.removeEventListener('keydown', closeWalletMenuOnEscape)
 })
@@ -107,9 +132,9 @@ onBeforeUnmount(() => {
           <button
             class="app-mode-trigger"
             type="button"
-            aria-haspopup="menu"
-            :aria-expanded="modeMenuOpen"
-            @click="modeMenuOpen = !modeMenuOpen"
+            :aria-haspopup="isMobileViewport ? 'dialog' : 'menu'"
+            :aria-expanded="isMobileViewport ? modeModalOpen : modeMenuOpen"
+            @click="toggleModePicker"
           >
             <span class="app-mode-trigger-icon" :class="{ test: isTestMode }">
               <Icon :name="isTestMode ? 'lucide:flask-conical' : 'lucide:blocks'" />
@@ -153,7 +178,8 @@ onBeforeUnmount(() => {
             :aria-haspopup="connected ? 'menu' : 'dialog'"
             @click="toggleWallet"
           >
-            <Icon name="lucide:wallet-cards" />{{ walletLabel }}
+            <Icon class="wallet-button-icon" name="lucide:wallet-cards" />
+            <span class="wallet-button-label">{{ walletLabel }}</span>
             <Icon v-if="connected" name="lucide:chevron-down" class="wallet-chevron" :class="{ open: walletMenuOpen }" />
           </button>
           <Transition name="dropdown-pop">
@@ -205,6 +231,29 @@ onBeforeUnmount(() => {
         <span>NON-CUSTODIAL</span>
       </div>
     </footer>
+
+    <Transition name="modal-slide">
+      <div v-if="modeModalOpen" class="modal-backdrop" @click.self="modeModalOpen = false" @keydown.esc="modeModalOpen = false">
+        <section class="modal mode-modal" role="dialog" aria-modal="true" aria-labelledby="mode-modal-title">
+          <button class="modal-close" type="button" title="Close" @click="modeModalOpen = false"><Icon name="lucide:x" /></button>
+          <div class="modal-kicker"><Icon name="lucide:settings-2" /> PLATFORM ENVIRONMENT</div>
+          <h2 id="mode-modal-title">Switch mode</h2>
+          <p>Choose where PurpleX loads data and executes your actions.</p>
+          <div class="mode-modal-options">
+            <button type="button" :aria-pressed="mode === 'main'" data-testid="mobile-mode-main" @click="chooseMode('main')">
+              <i class="app-mode-option-icon"><Icon name="lucide:blocks" /></i>
+              <span><strong>Main</strong><small>Solana Devnet · On-chain activity</small></span>
+              <i class="app-mode-selected"><Icon v-if="mode === 'main'" name="lucide:check" /></i>
+            </button>
+            <button type="button" :aria-pressed="mode === 'test'" data-testid="mobile-mode-test" @click="chooseMode('test')">
+              <i class="app-mode-option-icon test"><Icon name="lucide:flask-conical" /></i>
+              <span><strong>Test Mode</strong><small>PostgreSQL · No transactions</small></span>
+              <i class="app-mode-selected"><Icon v-if="mode === 'test'" name="lucide:check" /></i>
+            </button>
+          </div>
+        </section>
+      </div>
+    </Transition>
 
     <Transition name="modal-slide">
       <div v-if="walletOpen" class="modal-backdrop" @click.self="walletOpen = false">

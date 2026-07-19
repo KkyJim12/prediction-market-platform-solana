@@ -138,7 +138,6 @@ watch([walletAddress, mode], refreshOnChainState)
 onMounted(refreshOnChainState)
 
 useSeoMeta({
-  title: 'Earn — CupMarket',
   description: 'Supply or withdraw mock USDC from the CupMarket counterparty liquidity pool.'
 })
 </script>

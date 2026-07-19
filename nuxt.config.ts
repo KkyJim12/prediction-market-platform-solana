@@ -16,7 +16,7 @@ export default defineNuxtConfig({
       txOddsProgramId: '9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA',
       txOddsTokenMint: 'Zhw9TVKp68a1QrftncMSd6ELXKDtpVMNuMGr1jNwdeL',
       predictionMarketCluster: 'devnet',
-      predictionMarketProgramId: '9zgAu5MyTuFsGSU7mCwqQSYNEubmaKaMGyuzuGWyj2qg'
+      predictionMarketProgramId: 'FqRv1nR9E2TRQp1LXZmjp98kdWLLYDcLPD5GyUCb8dV4'
     }
   },
 
